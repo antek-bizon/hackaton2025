@@ -3,6 +3,8 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import RestaurantList from '../components/RestaurantList';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
 
 // Define icon components since we don't have Lucide-React
 const IconSparkles = () => (
@@ -1191,11 +1193,12 @@ export default function MainScreen() {
 
             <View style={styles.gallerySection}>
               <View style={styles.featureCard}>
-                <Image 
-                  source={{ uri: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000&auto=format&fit=crop" }} 
+                <LinearGradient
+                  colors={['#2ecc71', '#27ae60']}
                   style={styles.featureImageLarge}
-                  resizeMode="cover"
-                />
+                >
+                  <MaterialIcons name="restaurant" size={48} color="#fff" />
+                </LinearGradient>
                 <Text style={styles.featureTitle}>Dlaczego Boolk?</Text>
                 <Text style={styles.featureDescription}>
                   Z racji coraz większych kosztów życia dla studentów w miastach Boolk dzięki technologi AI wyszukuje miejsca z najlepszym stosunkiem ilości jedzenia do ceny. Dzięki temu użytkownicy mogą spróbować nowych smaków, bez obaw o swój portfel.
@@ -1247,8 +1250,6 @@ export default function MainScreen() {
                   transform: [{ scale: letterScales[0] }]
                 }
               ]}
-              onMouseEnter={() => handleLetterHover(0, true)}
-              onMouseLeave={() => handleLetterHover(0, false)}
             >
               B
             </Animated.Text>
@@ -1262,8 +1263,6 @@ export default function MainScreen() {
                   transform: [{ scale: letterScales[1] }]
                 }
               ]}
-              onMouseEnter={() => handleLetterHover(1, true)}
-              onMouseLeave={() => handleLetterHover(1, false)}
             >
               o
             </Animated.Text>
@@ -1277,8 +1276,6 @@ export default function MainScreen() {
                   transform: [{ scale: letterScales[2] }]
                 }
               ]}
-              onMouseEnter={() => handleLetterHover(2, true)}
-              onMouseLeave={() => handleLetterHover(2, false)}
             >
               o
             </Animated.Text>
@@ -1292,8 +1289,6 @@ export default function MainScreen() {
                   transform: [{ scale: letterScales[3] }]
                 }
               ]}
-              onMouseEnter={() => handleLetterHover(3, true)}
-              onMouseLeave={() => handleLetterHover(3, false)}
             >
               l
             </Animated.Text>
@@ -1307,8 +1302,6 @@ export default function MainScreen() {
                   transform: [{ scale: letterScales[4] }]
                 }
               ]}
-              onMouseEnter={() => handleLetterHover(4, true)}
-              onMouseLeave={() => handleLetterHover(4, false)}
             >
               k
             </Animated.Text>
@@ -1553,6 +1546,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     flexDirection: 'row',
+    shadowColor: '#2ecc71',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 5,
   },
   searchButtonText: {
     color: 'white',
@@ -1616,8 +1614,17 @@ const styles = StyleSheet.create({
   },
   featureImageLarge: {
     width: '100%',
-    height: 200,
-    borderRadius: 16,
-    marginBottom: 20,
+    height: 180,
+    borderRadius: 20,
+    marginBottom: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  featureGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 }); 
