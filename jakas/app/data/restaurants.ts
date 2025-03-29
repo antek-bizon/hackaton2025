@@ -1,9 +1,19 @@
+export type Rating = 1 | 2 | 3 | 4 | 5;
+
 export interface Restaurant {
   id: string;
   name: string;
-  rating: number;
+  rating: Rating;
   description: string;
-  reviews: Review[];
+  cuisine: string;
+  priceRange: 'budget' | 'moderate' | 'luxury';
+  address: string;
+  isOpen: boolean;
+  reviews: {
+    rating: Rating;
+    comment: string;
+    date: string;
+  }[];
 }
 
 export interface Review {
@@ -17,201 +27,221 @@ export const restaurants: Restaurant[] = [
   {
     id: 'tasty-corner',
     name: 'The Tasty Corner',
-    rating: 8,
+    rating: 4,
     description: 'Welcome to The Tasty Corner, where culinary excellence meets comfort. Our restaurant offers a unique blend of traditional and modern cuisine, prepared with the finest ingredients by our expert chefs.',
+    cuisine: 'French',
+    priceRange: 'moderate',
+    address: '123 Main St, City',
+    isOpen: true,
     reviews: [
       {
-        id: '1',
-        author: 'John Doe',
-        rating: 9,
+        rating: 5,
         comment: 'Amazing food and great service!',
+        date: '2024-04-01'
       },
       {
-        id: '2',
-        author: 'Jane Smith',
-        rating: 7,
+        rating: 4,
         comment: 'Good atmosphere but a bit pricey.',
-      },
-    ],
+        date: '2024-03-30'
+      }
+    ]
   },
   {
     id: 'golden-plate',
     name: 'Golden Plate Bistro',
-    rating: 9,
+    rating: 5,
     description: 'Experience luxury dining at its finest. Golden Plate Bistro combines French culinary techniques with local ingredients to create unforgettable dishes.',
+    cuisine: 'French',
+    priceRange: 'luxury',
+    address: '456 Elm St, City',
+    isOpen: true,
     reviews: [
       {
-        id: '3',
-        author: 'Michael Brown',
-        rating: 10,
+        rating: 5,
         comment: 'Absolutely perfect evening! The wine pairing was exceptional.',
+        date: '2024-04-02'
       },
       {
-        id: '4',
-        author: 'Sarah Wilson',
-        rating: 8,
+        rating: 4,
         comment: 'Beautiful presentation and exquisite flavors.',
-      },
-    ],
+        date: '2024-03-31'
+      }
+    ]
   },
   {
     id: 'spice-garden',
     name: 'Spice Garden',
-    rating: 7,
+    rating: 4,
     description: 'Authentic Indian cuisine in a warm, welcoming atmosphere. Our chefs bring traditional recipes to life with modern techniques.',
+    cuisine: 'Indian',
+    priceRange: 'moderate',
+    address: '789 Oak St, City',
+    isOpen: true,
     reviews: [
       {
-        id: '5',
-        author: 'David Lee',
-        rating: 8,
+        rating: 5,
         comment: 'Best butter chicken in town!',
+        date: '2024-04-03'
       },
       {
-        id: '6',
-        author: 'Emma Davis',
-        rating: 6,
+        rating: 3,
         comment: 'Good food but service was slow.',
-      },
-    ],
+        date: '2024-03-30'
+      }
+    ]
   },
   {
     id: 'ocean-view',
     name: 'Ocean View Seafood',
-    rating: 9,
+    rating: 5,
     description: 'Fresh seafood with stunning ocean views. Our daily catch is prepared to perfection with Mediterranean influences.',
+    cuisine: 'Mediterranean',
+    priceRange: 'luxury',
+    address: '101 Pine St, City',
+    isOpen: true,
     reviews: [
       {
-        id: '7',
-        author: 'Robert Taylor',
-        rating: 9,
+        rating: 5,
         comment: 'Fresh seafood and amazing sunset views!',
+        date: '2024-04-04'
       },
       {
-        id: '8',
-        author: 'Lisa Anderson',
-        rating: 9,
+        rating: 5,
         comment: 'Perfect date night spot.',
-      },
-    ],
+        date: '2024-04-05'
+      }
+    ]
   },
   {
     id: 'urban-grill',
     name: 'Urban Grill House',
-    rating: 8,
+    rating: 4,
     description: 'Modern steakhouse with a focus on premium cuts and craft cocktails. Our dry-aged beef is a must-try.',
+    cuisine: 'American',
+    priceRange: 'moderate',
+    address: '202 Maple St, City',
+    isOpen: true,
     reviews: [
       {
-        id: '9',
-        author: 'James Wilson',
-        rating: 9,
+        rating: 5,
         comment: 'Best steak in the city!',
+        date: '2024-04-06'
       },
       {
-        id: '10',
-        author: 'Maria Garcia',
-        rating: 7,
+        rating: 4,
         comment: 'Great atmosphere, slightly expensive.',
-      },
-    ],
+        date: '2024-04-07'
+      }
+    ]
   },
   {
     id: 'sushi-master',
     name: 'Sushi Master',
-    rating: 9,
+    rating: 5,
     description: 'Authentic Japanese cuisine with master sushi chefs. Experience the art of sushi-making in an intimate setting.',
+    cuisine: 'Japanese',
+    priceRange: 'luxury',
+    address: '303 Birch St, City',
+    isOpen: true,
     reviews: [
       {
-        id: '11',
-        author: 'Thomas Chen',
-        rating: 10,
+        rating: 5,
         comment: 'Omakase experience was incredible!',
+        date: '2024-04-08'
       },
       {
-        id: '12',
-        author: 'Sophie Kim',
-        rating: 8,
+        rating: 4,
         comment: 'Fresh fish and perfect rice.',
-      },
-    ],
+        date: '2024-04-09'
+      }
+    ]
   },
   {
     id: 'pizza-paradise',
     name: 'Pizza Paradise',
-    rating: 7,
+    rating: 4,
     description: 'Neapolitan-style pizza made in traditional wood-fired ovens. Fresh ingredients and authentic Italian recipes.',
+    cuisine: 'Italian',
+    priceRange: 'budget',
+    address: '404 Cedar St, City',
+    isOpen: true,
     reviews: [
       {
-        id: '13',
-        author: 'Alex Thompson',
-        rating: 8,
+        rating: 4,
         comment: 'Authentic Italian pizza!',
+        date: '2024-04-10'
       },
       {
-        id: '14',
-        author: 'Rachel Green',
-        rating: 6,
+        rating: 3,
         comment: 'Good pizza but limited seating.',
-      },
-    ],
+        date: '2024-04-11'
+      }
+    ]
   },
   {
     id: 'thai-spice',
     name: 'Thai Spice Kitchen',
-    rating: 8,
+    rating: 4,
     description: 'Authentic Thai cuisine with bold flavors and fresh ingredients. Our curries are made from scratch daily.',
+    cuisine: 'Thai',
+    priceRange: 'moderate',
+    address: '505 Elm St, City',
+    isOpen: true,
     reviews: [
       {
-        id: '15',
-        author: 'Kevin Wong',
-        rating: 9,
+        rating: 5,
         comment: 'Best Pad Thai in town!',
+        date: '2024-04-12'
       },
       {
-        id: '16',
-        author: 'Amanda White',
-        rating: 7,
+        rating: 4,
         comment: 'Spicy but delicious!',
-      },
-    ],
+        date: '2024-04-13'
+      }
+    ]
   },
   {
     id: 'veggie-delight',
     name: 'Veggie Delight',
-    rating: 8,
+    rating: 4,
     description: 'Plant-based cuisine that will change your mind about vegetarian food. Creative dishes made with seasonal ingredients.',
+    cuisine: 'Vegetarian',
+    priceRange: 'budget',
+    address: '606 Maple St, City',
+    isOpen: true,
     reviews: [
       {
-        id: '17',
-        author: 'Laura Smith',
-        rating: 9,
+        rating: 5,
         comment: 'Even meat-lovers will love this place!',
+        date: '2024-04-14'
       },
       {
-        id: '18',
-        author: 'Chris Johnson',
-        rating: 7,
+        rating: 4,
         comment: 'Great vegan options.',
-      },
-    ],
+        date: '2024-04-15'
+      }
+    ]
   },
   {
     id: 'taco-fiesta',
     name: 'Taco Fiesta',
-    rating: 7,
+    rating: 4,
     description: 'Authentic Mexican street food with a modern twist. Our tacos are made with fresh tortillas and premium ingredients.',
+    cuisine: 'Mexican',
+    priceRange: 'budget',
+    address: '707 Elm St, City',
+    isOpen: true,
     reviews: [
       {
-        id: '19',
-        author: 'Carlos Rodriguez',
-        rating: 8,
+        rating: 4,
         comment: 'Authentic Mexican flavors!',
+        date: '2024-04-16'
       },
       {
-        id: '20',
-        author: 'Nina Patel',
-        rating: 6,
+        rating: 3,
         comment: 'Good tacos but service could be better.',
-      },
-    ],
-  },
+        date: '2024-04-17'
+      }
+    ]
+  }
 ]; 
