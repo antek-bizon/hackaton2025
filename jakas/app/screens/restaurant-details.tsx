@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated, Image, Dimensions } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Animated, Image, Dimensions, useWindowDimensions } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { restaurants } from '../data/restaurants';
@@ -12,6 +12,8 @@ const rightMargin = leftMargin * 0.9; // 5.4% margin on right
 const imageMargin = { left: leftMargin, right: rightMargin };
 
 const RestaurantDetails = () => {
+  const { width: windowWidth } = useWindowDimensions();
+  const isSmallScreen = windowWidth < 768; // Breakpoint for tablets
   const { id } = useLocalSearchParams();
   const restaurant = restaurants.find(r => r.id === id);
   const starAnimations = useRef([...Array(10)].map(() => new Animated.Value(0))).current;
@@ -75,26 +77,28 @@ const RestaurantDetails = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.imageContainer}>
-        <Animated.Image
-          source={{ uri: restaurant.imageUrl }}
-          style={[
-            styles.restaurantImage,
-            {
-              opacity: imageAnimation,
-              transform: [
-                {
-                  scale: imageAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.95, 1],
-                  }),
-                },
-              ],
-            },
-          ]}
-          resizeMode="cover"
-        />
-      </View>
+      {!isSmallScreen && (
+        <View style={styles.imageContainer}>
+          <Animated.Image
+            source={{ uri: restaurant.imageUrl }}
+            style={[
+              styles.restaurantImage,
+              {
+                opacity: imageAnimation,
+                transform: [
+                  {
+                    scale: imageAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.95, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+            resizeMode="cover"
+          />
+        </View>
+      )}
       <Animated.View style={[
         styles.header,
         {
@@ -105,35 +109,67 @@ const RestaurantDetails = () => {
               outputRange: [20, 0],
             }),
           }],
+          backgroundColor: isSmallScreen ? 'transparent' : '#f8f8f8',
+          paddingTop: isSmallScreen ? 0 : 20,
         },
       ]}>
-        <Text style={styles.restaurantName}>{restaurant.name}</Text>
-        <View style={styles.ratingContainer}>
-          {[...Array(10)].map((_, index) => (
-            <Animated.View
-              key={index}
-              style={[
-                styles.star,
-                {
-                  opacity: starAnimations[index],
-                  transform: [
-                    {
-                      scale: starAnimations[index].interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.5, 1],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <MaterialIcons
-                name={index < restaurant.rating ? 'star' : 'star-border'}
-                size={24}
-                color="#FFD700"
-              />
-            </Animated.View>
-          ))}
+        {isSmallScreen && (
+          <Animated.Image
+            source={{ uri: restaurant.imageUrl }}
+            style={[
+              styles.headerBackgroundImage,
+              {
+                opacity: headerAnimation,
+                transform: [{
+                  scale: headerAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.95, 1],
+                  }),
+                }],
+              },
+            ]}
+            resizeMode="cover"
+          />
+        )}
+        <View style={[
+          styles.headerContent,
+          {
+            backgroundColor: isSmallScreen ? 'rgba(0, 0, 0, 0.5)' : 'transparent',
+            padding: isSmallScreen ? 20 : 0,
+            borderRadius: isSmallScreen ? 12 : 0,
+          },
+        ]}>
+          <Text style={[
+            styles.restaurantName,
+            { color: isSmallScreen ? '#fff' : '#000' }
+          ]}>{restaurant.name}</Text>
+          <View style={styles.ratingContainer}>
+            {[...Array(10)].map((_, index) => (
+              <Animated.View
+                key={index}
+                style={[
+                  styles.star,
+                  {
+                    opacity: starAnimations[index],
+                    transform: [
+                      {
+                        scale: starAnimations[index].interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.5, 1],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <MaterialIcons
+                  name={index < restaurant.rating ? 'star' : 'star-border'}
+                  size={24}
+                  color="#FFD700"
+                />
+              </Animated.View>
+            ))}
+          </View>
         </View>
       </Animated.View>
 
@@ -207,20 +243,30 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   header: {
-    padding: 20,
-    backgroundColor: '#f8f8f8',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
     width: imageWidth,
     marginHorizontal: imageMargin.right,
     marginLeft: imageMargin.left,
     borderRadius: 12,
     marginBottom: 30,
+    overflow: 'hidden',
+  },
+  headerBackgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  headerContent: {
+    zIndex: 2,
+    alignItems: 'center',
   },
   restaurantName: {
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 10,
+    textAlign: 'center',
   },
   ratingContainer: {
     flexDirection: 'row',
