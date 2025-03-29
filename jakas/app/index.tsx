@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -42,6 +43,12 @@ export default function Home() {
       </View>
     </View>
   );
+=======
+import MainScreen from './screens/MainScreen';
+
+export default function Index() {
+  return <MainScreen />;
+>>>>>>> origin/StartScreen
 }
 
 const styles = StyleSheet.create({
