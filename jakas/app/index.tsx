@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Animated, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { restaurants, Restaurant } from './data/restaurants';
 
 export default function Home() {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const scaleAnim = React.useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -15,7 +16,24 @@ export default function Home() {
     }).start();
   }, []);
 
-  const renderRestaurantItem = ({ item, index }: { item: Restaurant; index: number }) => (
+  const handleRestaurantPress = (id: string) => {
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      router.push(`/screens/restaurant-details?id=${id}`);
+    });
+  };
+
+  const renderRestaurantItem = ({ item }: { item: Restaurant }) => (
     <Animated.View
       style={[
         styles.cardContainer,
@@ -32,62 +50,67 @@ export default function Home() {
         },
       ]}
     >
-      <Link href={`/screens/restaurant-details?id=${item.id}`} asChild>
-        <TouchableOpacity style={styles.restaurantCard}>
-          <View style={[styles.cardGradient, { backgroundColor: 'rgba(255,255,255,0.9)' }]}>
-            <View style={styles.restaurantHeader}>
-              <View style={styles.nameContainer}>
-                <Text style={styles.restaurantName}>{item.name}</Text>
-                <View style={styles.cuisineTag}>
-                  <Text style={styles.cuisineText}>{item.cuisine}</Text>
-                </View>
-              </View>
-              <View style={styles.ratingContainer}>
-                {[...Array(5)].map((_, index) => (
-                  <MaterialIcons
-                    key={index}
-                    name={index < item.rating ? 'star' : 'star-border'}
-                    size={16}
-                    color="#FFD700"
-                  />
-                ))}
+      <Pressable 
+        style={({ pressed }) => [
+          styles.restaurantCard,
+          pressed && styles.cardPressed,
+        ]}
+        onPress={() => handleRestaurantPress(item.id)}
+        android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
+      >
+        <View style={styles.cardGradient}>
+          <View style={styles.restaurantHeader}>
+            <View style={styles.nameContainer}>
+              <Text style={styles.restaurantName}>{item.name}</Text>
+              <View style={styles.cuisineTag}>
+                <Text style={styles.cuisineText}>{item.cuisine}</Text>
               </View>
             </View>
-            
-            <Text style={styles.restaurantDescription} numberOfLines={2}>
-              {item.description}
-            </Text>
-            
-            <View style={styles.restaurantFooter}>
-              <View style={styles.infoContainer}>
-                <MaterialIcons name="location-on" size={16} color="#666" />
-                <Text style={styles.infoText}>{item.address}</Text>
-              </View>
-              <View style={styles.infoContainer}>
-                <MaterialIcons 
-                  name={item.isOpen ? 'check-circle' : 'cancel'} 
-                  size={16} 
-                  color={item.isOpen ? '#4CAF50' : '#F44336'} 
+            <View style={styles.ratingContainer}>
+              {[...Array(5)].map((_, index) => (
+                <MaterialIcons
+                  key={index}
+                  name={index < item.rating ? 'star' : 'star-border'}
+                  size={16}
+                  color="#FFD700"
                 />
-                <Text style={[styles.infoText, { color: item.isOpen ? '#4CAF50' : '#F44336' }]}>
-                  {item.isOpen ? 'Otwarte' : 'Zamknięte'}
-                </Text>
-              </View>
+              ))}
             </View>
-            
-            <View style={styles.priceContainer}>
-              <Text style={styles.priceText}>
-                {item.priceRange === 'budget' ? '€' : item.priceRange === 'moderate' ? '€€' : '€€€'}
+          </View>
+          
+          <Text style={styles.restaurantDescription} numberOfLines={2}>
+            {item.description}
+          </Text>
+          
+          <View style={styles.restaurantFooter}>
+            <View style={styles.infoContainer}>
+              <MaterialIcons name="location-on" size={16} color="#666" />
+              <Text style={styles.infoText}>{item.address}</Text>
+            </View>
+            <View style={styles.infoContainer}>
+              <MaterialIcons 
+                name={item.isOpen ? 'check-circle' : 'cancel'} 
+                size={16} 
+                color={item.isOpen ? '#4CAF50' : '#F44336'} 
+              />
+              <Text style={[styles.infoText, { color: item.isOpen ? '#4CAF50' : '#F44336' }]}>
+                {item.isOpen ? 'Otwarte' : 'Zamknięte'}
               </Text>
             </View>
           </View>
-        </TouchableOpacity>
-      </Link>
+          
+          <View style={styles.priceContainer}>
+            <Text style={styles.priceText}>
+              {item.priceRange === 'budget' ? '€' : item.priceRange === 'moderate' ? '€€' : '€€€'}
+            </Text>
+          </View>
+        </View>
+      </Pressable>
     </Animated.View>
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: '#FF6B6B' }]}>
+    <View style={styles.container}>
       <View style={styles.background}>
         <View style={styles.headerContainer}>
           <Text style={styles.title}>Najlepsze Restauracje</Text>
@@ -111,6 +134,7 @@ const styles = StyleSheet.create({
   },
   background: {
     flex: 1,
+    backgroundColor: '#FF6B6B',
   },
   headerContainer: {
     padding: 20,
@@ -150,8 +174,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
+  cardPressed: {
+    transform: [{ scale: 0.98 }],
+    opacity: 0.9,
+  },
   cardGradient: {
     padding: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   restaurantHeader: {
     flexDirection: 'row',
@@ -169,7 +199,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   cuisineTag: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -183,6 +213,7 @@ const styles = StyleSheet.create({
   ratingContainer: {
     flexDirection: 'row',
     marginLeft: 8,
+    marginRight: 40,
   },
   restaurantDescription: {
     fontSize: 14,
@@ -212,6 +243,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    zIndex: 10,
   },
   priceText: {
     fontSize: 14,
