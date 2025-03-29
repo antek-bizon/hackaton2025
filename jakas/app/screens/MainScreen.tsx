@@ -1212,7 +1212,7 @@ export default function MainScreen() {
                 <IconClock />
                 <Text style={styles.featureTitle}>Co to Boolk Meter</Text>
                 <Text style={styles.featureDescription}>
-                  Boolk używa gemini API do analizy opinii klientów by wydobyć najważniejsze informacje: Jak duże są porcje jedzenia.
+                  Boolk to zaawansowany system, który na podstawie opinii użytkowników pomaga wybrać restaurację, gdzie zjesz NAJWIĘCEJ za rozsądną cenę. Nasz algorytm sztucznej inteligencji analizuje dane i wybiera najlepszą opcję!
                 </Text>
               </View>
 
