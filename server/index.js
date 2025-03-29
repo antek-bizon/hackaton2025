@@ -1,14 +1,17 @@
 
 const express = require('express');
 const sqlite = require('sqlite-async')
+const ai = require('@google/generative-ai')
 const app = express()
+const GEMINI_API_KEY = 'AIzaSyDwMduRX6cq2EDZkrlbt01ku83-uEkP2gk'
+const genAI = new ai.GoogleGenerativeAI(GEMINI_API_KEY);
 const PORT = process.env.PORT || 3000
 let db
 createDatabase()
   .then((_db) => {
     db = _db
     console.log('Database ready')
-    addData(db)
+    //addData(db)
   })
 
 async function createDatabase() {
@@ -20,24 +23,21 @@ async function createDatabase() {
     cuisine TEXT,
     price_range TEXT,
     address TEXT,
-    opening_hours TEXT,
-    image_url TEXT
+    opening_time TEXT,
+    closing_time TEXT,
+    image_url TEXT,
+    review INTEGER
   )`)
   await Promise.all([
     db.run(`CREATE TABLE IF NOT EXISTS reviews (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       restaurant_id INTEGER NOT NULL,
       review TEXT NOT NULL,
-      rating INTEGER CHECK(rating >= 1 AND rating <= 10),
-      data TEXT,
+      rating FLOAT,
+      date TEXT,
+      average_price INTEGER,
       FOREIGN KEY (restaurant_id) REFERENCES restaurants (id)
     )`),
-    db.run(`CREATE TABLE IF NOT EXISTS cache (
-      restaurant_id INTEGER NOT NULL,
-      result TEXT NOT NULL,
-      date INTEGER NOT NULL,
-      FOREIGN KEY (restaurant_id) REFERENCES restaurants (id)
-      )`),
     db.run(`CREATE TABLE IF NOT EXISTS queue (
         restaurant_id INTEGER NOT NULL,
         FOREIGN KEY (restaurant_id) REFERENCES restaurants (id)
@@ -46,9 +46,86 @@ async function createDatabase() {
   return db
 }
 
-async function makeAIRequest() {
-  // TODO
-  return JSON.stringify({ todo: 'todo' })
+async function analyzeRestaurants(reviews) {
+  console.log('Making AI request')
+
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  
+  const prompt = `
+  Wszystkie recenzje są w języku polskim. Proszę, przeprowadź analizę oraz generuj odpowiedzi w języku polskim.
+
+    You are given a JSON array of restaurant reviews. Each review contains the following fields:
+      - restaurantName
+      - rating
+      - textReviews
+      - averagePrice
+
+    Your task is to perform the following steps for each restaurant:
+
+    1. **Extraction:**  
+       Extract the four fields (restaurantName, rating, textReviews, averagePrice) from each review.
+    
+    2. **Portion-Based Rating:**  
+       For each review, analyze the "textReviews" field and assign a portion-based rating (from 1 to 10) using a function f(review) that only considers the description of the portion size.  
+       For instance, keywords like "ogromne", "duże", "hojne" should result in a higher score, while words like "małe", 
+       "mikroskopijne", "niewystarczające" should result in a lower score. Just partition words that in polish mean "big" or "small". 
+       For example: "Ogromne" should result in a higher score, while "małe" should result in a lower score.
+    
+    3. **Aggregate per Restaurant:**  
+       For each restaurant (group reviews by restaurantName), compute the following:
+       - avg_f: The average of the portion-based ratings assigned by f(review).
+       - avg_rating: The average of the original "rating" values.
+       - avg_price: The average of the "averagePrice" values.
+    
+    4. **Value for Money Calculatpythonion:**  
+       For each restaurant, calculate the value for money score using the formula:
+       
+           compareFun = avg_f × avg_rating × (1 / avg_price)
+       
+       This score represents the balance between portion size, overall quality (original rating), and cost.
+    
+    5. **Output:**  
+       Provide:
+         - Which restaurant offers the best value for money (highest compareFun score).
+         - A ranking of restaurants based on the compareFun score.
+         - Specific details about portion sizes mentioned in the reviews.
+         - Any price-related praises or concerns mentioned in the reviews.
+    
+    Please provide your output in clear JSON format.
+    This JSON format should be in the following format:
+    {
+      "analysisResults": [
+        {
+          "restaurantName": "Restaurant Name",
+          "compareFun": 0.0,
+          "aiComment": "Comment" 
+          // This above comment should be in polish, and has to be  standarized according to the compareFun score.
+          // So if compareFun is above 0.8 say "Najesz sie niewielkim kosztem"
+          // If compareFun is between 0.5 and 0.8 say "Mogłoby być lepiej"
+          // If compareFun is below 0.5 say "Dużo wydasz i sie nie najesz"
+        }
+      ]
+    }
+  
+  JSON Data:
+  ${JSON.stringify(reviews, null, 2)}
+  `;
+  
+  try {
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const outputText = await response.text();
+
+      // Remove markdown formatting (```json and ```)
+      const cleanOutput = outputText.replace(/```json/g, "").replace(/```/g, "");
+
+      // Parse the cleaned output to ensure it's valid JSON
+      console.log(cleanOutput)
+      return JSON.parse(cleanOutput);
+  } catch (error) {
+      console.error('Error analyzing restaurants:', error);
+      throw error;
+  }
 }
 
 function jsonResponse({ message = 'Success', status = 200, data = {} }) {
@@ -56,19 +133,16 @@ function jsonResponse({ message = 'Success', status = 200, data = {} }) {
 }
 
 async function getRestaurantScore(id) {
-  const caches = await db.all('SELECT * FROM cache WHERE restaurant_id = ?', [id])
-  if (caches.length > 0) {
-    return jsonResponse({ data: caches[0] })
-  }
-  const queue_items = await db.all('SELECT * FROM queue WHERE restaurant_id = ?', [id])
-
+  const queue_items = await db.all('SELECT * FROM queue WHERE restaurant_id = ? AND DATE >', [id, Date.now() - 10000])
   if (queue_items.length < 1) {
     // If not in cache or queue make a request to AI
-    const reviews = db.all('SELECT * FROM reviews WHERE restaurant_id = ?')
+    const reviews = await db.all('SELECT average_price, review, rating FROM reviews WHERE restaurant_id = ?', [id])
     const result = Promise.all([
-      db.run('INSERT INTO queue VALUES (?)', [id]),
-      makeAIRequest(reviews)]).then((results) => {
-        db.run('INSERT INTO cache VALUES (?, ?, ?)'[id, results[1], Date.now()])
+      //db.run('INSERT INTO queue VALUES (?)', [id]),
+      analyzeRestaurants(reviews)]).then((result) => {
+        db.run('UPDATE restaurants SET rating = ?, ai_comment = ? WHERE id = ?', [result.compareFun, result.aiComment, id])
+      }).finally(() => {
+        db.run('DELETE FROM queue WHERE restaurant_id = ?'[id])
       })
   }
 
@@ -93,7 +167,7 @@ app.get('/api/restaurants', async (req, res) => {
 app.get('/api/restaurants/:id', async (req, res) => {
   try {
     const id = req.params.id
-    const does_exist = await db.all('SELECT id FROM restaurants WHERE id = ?', [id])
+    const does_exist = await db.all('SELECT id,  FROM restaurants WHERE id = ?', [id])
     if (does_exist.length > 0) {
       const result = await getRestaurantScore(id)
       res.json(result)
@@ -112,45 +186,11 @@ app.listen(PORT, () => {
 
 
 async function addData(db) {
-  const defaultOpeningHours = JSON.stringify({
-    monday: { open: '10:00', close: '22:00' },
-    tuesday: { open: '10:00', close: '22:00' },
-    wednesday: { open: '10:00', close: '22:00' },
-    thursday: { open: '10:00', close: '22:00' },
-    friday: { open: '10:00', close: '22:00' },
-    saturday: { open: '11:00', close: '23:00' },
-    sunday: { open: '11:00', close: '23:00' }
-  })
+  const defaultOpeningHours = { open: '10:00', close: '22:00' }
 
-  const nightHours = JSON.stringify({
-    monday: { open: '23:00', close: '05:00' },
-    tuesday: { open: '23:00', close: '05:00' },
-    wednesday: { open: '23:00', close: '05:00' },
-    thursday: { open: '23:00', close: '05:00' },
-    friday: { open: '23:00', close: '05:00' },
-    saturday: { open: '23:00', close: '05:00' },
-    sunday: { open: '23:00', close: '05:00' }
-  })
+  const nightHours = { open: '23:00', close: '05:00' }
 
-  const closedRestaurantHours = JSON.stringify({
-    monday: null,
-    tuesday: null,
-    wednesday: null,
-    thursday: null,
-    friday: null,
-    saturday: null,
-    sunday: null
-  })
-
-  const weekendOnlyHours = JSON.stringify({
-    monday: null,
-    tuesday: null,
-    wednesday: null,
-    thursday: null,
-    friday: { open: '11:00', close: '23:00' },
-    saturday: { open: '11:00', close: '23:00' },
-    sunday: { open: '11:00', close: '23:00' }
-  })
+  const weekendOnlyHours = { open: '11:00', close: '23:00' }
 
   const restaurants = [
     {
@@ -161,7 +201,8 @@ async function addData(db) {
       cuisine: 'French',
       priceRange: 'moderate',
       address: '123 Main St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: defaultOpeningHours.open,
+      closingTime: defaultOpeningHours.close,
       imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836',
       reviews: [
         {
@@ -184,7 +225,8 @@ async function addData(db) {
       cuisine: 'French',
       priceRange: 'luxury',
       address: '456 Elm St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: defaultOpeningHours.open,
+      closingTime: defaultOpeningHours.close,
       imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999',
       reviews: [
         {
@@ -207,7 +249,8 @@ async function addData(db) {
       cuisine: 'Indian',
       priceRange: 'moderate',
       address: '789 Oak St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: defaultOpeningHours.open,
+      closingTime: defaultOpeningHours.close,
       imageUrl: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe',
       reviews: [
         {
@@ -230,7 +273,8 @@ async function addData(db) {
       cuisine: 'Mediterranean',
       priceRange: 'luxury',
       address: '101 Pine St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: defaultOpeningHours.open,
+      closingTime: defaultOpeningHours.close,
       imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b',
       reviews: [
         {
@@ -253,7 +297,8 @@ async function addData(db) {
       cuisine: 'American',
       priceRange: 'moderate',
       address: '202 Maple St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: defaultOpeningHours.open,
+      closingTime: defaultOpeningHours.close,
       imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947',
       reviews: [
         {
@@ -276,7 +321,8 @@ async function addData(db) {
       cuisine: 'Japanese',
       priceRange: 'luxury',
       address: '303 Birch St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: defaultOpeningHours.open,
+      closingTime: defaultOpeningHours.close,
       imageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c',
       reviews: [
         {
@@ -299,7 +345,8 @@ async function addData(db) {
       cuisine: 'Italian',
       priceRange: 'budget',
       address: '404 Cedar St, City',
-      openingHours: nightHours,
+      openingTime: nightHours.open,
+      closingTime: nightHours.close,
       imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591',
       reviews: [
         {
@@ -322,7 +369,8 @@ async function addData(db) {
       cuisine: 'Thai',
       priceRange: 'moderate',
       address: '505 Elm St, City',
-      openingHours: weekendOnlyHours,
+      openingTime: weekendOnlyHours.open,
+      closingTime: weekendOnlyHours.close,
       imageUrl: 'https://images.unsplash.com/photo-1559314809-0d155014e29e',
       reviews: [
         {
@@ -345,7 +393,8 @@ async function addData(db) {
       cuisine: 'Vegetarian',
       priceRange: 'budget',
       address: '606 Maple St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: weekendOnlyHours.open,
+      closingTime: weekendOnlyHours.close,
       imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd',
       reviews: [
         {
@@ -368,7 +417,8 @@ async function addData(db) {
       cuisine: 'Mexican',
       priceRange: 'budget',
       address: '707 Elm St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: weekendOnlyHours.open,
+      closingTime: weekendOnlyHours.close,
       imageUrl: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47',
       reviews: [
         {
@@ -387,15 +437,16 @@ async function addData(db) {
 
   for (const restaurant of restaurants) {
     const id = await db.run(
-      `INSERT OR IGNORE INTO restaurants (name, description, cuisine, price_range, address, opening_hours, image_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR IGNORE INTO restaurants (name, description, cuisine, price_range, address, opening_time, closing_time, image_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         restaurant.name,
         restaurant.description,
         restaurant.cuisine,
         restaurant.priceRange,
         restaurant.address,
-        restaurant.openingHours,
+        restaurant.openingTime,
+        restaurant.closingTime,
         restaurant.imageUrl
       ]
     );
