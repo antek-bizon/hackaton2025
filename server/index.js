@@ -19,7 +19,8 @@ async function createDatabase() {
     cuisine TEXT,
     price_range TEXT,
     address TEXT,
-    opening_hours TEXT,
+    opening_time TEXT,
+    closing_time TEXT,
     image_url TEXT
   )`)
   await Promise.all([
@@ -82,7 +83,15 @@ function handleError(res, err) {
 app.get('/api/restaurants', async (req, res) => {
   try {
     const rows = await db.all('SELECT * FROM restaurants', [])
-    res.json(rows)
+    // Transform the data to match the frontend interface
+    const transformedRows = rows.map(row => ({
+      ...row,
+      openingHours: {
+        open: row.opening_time,
+        close: row.closing_time
+      }
+    }))
+    res.json(transformedRows)
   } catch (err) {
     handleError(res, err)
   }
@@ -95,7 +104,15 @@ app.get('/api/restaurants/:id', async (req, res) => {
     const does_exist = await db.all('SELECT id FROM restaurants WHERE id = ?', [id])
     if (does_exist.length > 0) {
       const result = await getRestaurantScore(id)
-      res.json(result)
+      // Transform the data to match the frontend interface
+      const transformedResult = {
+        ...result,
+        openingHours: {
+          open: result.opening_time,
+          close: result.closing_time
+        }
+      }
+      res.json(transformedResult)
     } else {
       res.status(400).json(jsonResponse({ message: 'Invalid restaurant id', status: 400 }))
     }
@@ -111,25 +128,17 @@ app.listen(PORT, () => {
 
 
 async function addData(db) {
-  const defaultOpeningHours = JSON.stringify({
-    open: '10:00',
-    close: '22:00'
-  });
+  const defaultOpeningTime = '10:00';
+  const defaultClosingTime = '22:00';
 
-  const nightHours = JSON.stringify({
-    open: '23:00',
-    close: '05:00'
-  });
+  const nightOpeningTime = '23:00';
+  const nightClosingTime = '05:00';
 
-  const closedRestaurantHours = JSON.stringify({
-    open: '00:00',
-    close: '00:00'
-  });
+  const closedOpeningTime = '00:00';
+  const closedClosingTime = '00:00';
 
-  const weekendOnlyHours = JSON.stringify({
-    open: '11:00',
-    close: '23:00'
-  });
+  const weekendOpeningTime = '11:00';
+  const weekendClosingTime = '23:00';
 
   const restaurants = [
     {
@@ -140,7 +149,8 @@ async function addData(db) {
       cuisine: 'French',
       priceRange: 'moderate',
       address: '123 Main St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: defaultOpeningTime,
+      closingTime: defaultClosingTime,
       imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836',
       reviews: [
         {
@@ -163,7 +173,8 @@ async function addData(db) {
       cuisine: 'French',
       priceRange: 'luxury',
       address: '456 Elm St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: defaultOpeningTime,
+      closingTime: defaultClosingTime,
       imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999',
       reviews: [
         {
@@ -186,7 +197,8 @@ async function addData(db) {
       cuisine: 'Indian',
       priceRange: 'moderate',
       address: '789 Oak St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: defaultOpeningTime,
+      closingTime: defaultClosingTime,
       imageUrl: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe',
       reviews: [
         {
@@ -209,7 +221,8 @@ async function addData(db) {
       cuisine: 'Mediterranean',
       priceRange: 'luxury',
       address: '101 Pine St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: defaultOpeningTime,
+      closingTime: defaultClosingTime,
       imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b',
       reviews: [
         {
@@ -232,7 +245,8 @@ async function addData(db) {
       cuisine: 'American',
       priceRange: 'moderate',
       address: '202 Maple St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: defaultOpeningTime,
+      closingTime: defaultClosingTime,
       imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947',
       reviews: [
         {
@@ -255,7 +269,8 @@ async function addData(db) {
       cuisine: 'Japanese',
       priceRange: 'luxury',
       address: '303 Birch St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: defaultOpeningTime,
+      closingTime: defaultClosingTime,
       imageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c',
       reviews: [
         {
@@ -278,7 +293,8 @@ async function addData(db) {
       cuisine: 'Italian',
       priceRange: 'budget',
       address: '404 Cedar St, City',
-      openingHours: nightHours,
+      openingTime: nightOpeningTime,
+      closingTime: nightClosingTime,
       imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591',
       reviews: [
         {
@@ -301,7 +317,8 @@ async function addData(db) {
       cuisine: 'Thai',
       priceRange: 'moderate',
       address: '505 Elm St, City',
-      openingHours: weekendOnlyHours,
+      openingTime: weekendOpeningTime,
+      closingTime: weekendClosingTime,
       imageUrl: 'https://images.unsplash.com/photo-1559314809-0d155014e29e',
       reviews: [
         {
@@ -324,7 +341,8 @@ async function addData(db) {
       cuisine: 'Vegetarian',
       priceRange: 'budget',
       address: '606 Maple St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: defaultOpeningTime,
+      closingTime: defaultClosingTime,
       imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd',
       reviews: [
         {
@@ -347,7 +365,8 @@ async function addData(db) {
       cuisine: 'Mexican',
       priceRange: 'budget',
       address: '707 Elm St, City',
-      openingHours: defaultOpeningHours,
+      openingTime: defaultOpeningTime,
+      closingTime: defaultClosingTime,
       imageUrl: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47',
       reviews: [
         {
@@ -366,15 +385,16 @@ async function addData(db) {
 
   for (const restaurant of restaurants) {
     const id = await db.run(
-      `INSERT OR IGNORE INTO restaurants (name, description, cuisine, price_range, address, opening_hours, image_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR IGNORE INTO restaurants (name, description, cuisine, price_range, address, opening_time, closing_time, image_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         restaurant.name,
         restaurant.description,
         restaurant.cuisine,
         restaurant.priceRange,
         restaurant.address,
-        restaurant.openingHours,
+        restaurant.openingTime,
+        restaurant.closingTime,
         restaurant.imageUrl
       ]
     );
