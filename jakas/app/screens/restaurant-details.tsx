@@ -79,7 +79,7 @@ const RestaurantDetails = () => {
 
     // Animate stars last, after sections are fully visible
     Animated.sequence([
-      Animated.delay(1500),
+      Animated.delay(500),
       Animated.stagger(100,
         starAnimations.map(animation =>
           Animated.timing(animation, {
