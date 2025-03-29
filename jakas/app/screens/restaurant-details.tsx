@@ -2,7 +2,31 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Animated, Image, useWindowDimensions } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { restaurants, OpeningHours } from '../data/restaurants';
+
+interface OpeningHours {
+  open: string;
+  close: string;
+}
+
+interface Review {
+  rating: number;
+  comment: string;
+  date: string;
+}
+
+interface Restaurant {
+  id: number;
+  name: string;
+  description: string;
+  cuisine: string;
+  price_range: string;
+  address: string;
+  opening_time: string;
+  closing_time: string;
+  image_url: string;
+  review: number | null;
+  reviews?: Review[];
+}
 
 const checkIfOpen = (openingHours: OpeningHours): boolean => {
   const now = new Date();
@@ -31,7 +55,9 @@ const RestaurantDetails = () => {
   const imageMargin = { left: leftMargin, right: rightMargin };
 
   const { id } = useLocalSearchParams();
-  const restaurant = restaurants.find(r => r.id === id);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const starAnimations = useRef([...Array(5)].map(() => new Animated.Value(0))).current;
   const headerAnimation = useRef(new Animated.Value(0)).current;
   const descriptionAnimation = useRef(new Animated.Value(0)).current;
@@ -39,6 +65,29 @@ const RestaurantDetails = () => {
   const imageAnimation = useRef(new Animated.Value(0)).current;
   const [isOpen, setIsOpen] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    fetchRestaurantDetails();
+  }, [id]);
+
+  const fetchRestaurantDetails = async () => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/restaurants`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch restaurant details');
+      }
+      const restaurants: Restaurant[] = await response.json();
+      const restaurant = restaurants.find((r: Restaurant) => r.id === Number(id));
+      if (!restaurant) {
+        throw new Error('Restaurant not found');
+      }
+      setRestaurant(restaurant);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Animate image first
@@ -92,7 +141,10 @@ const RestaurantDetails = () => {
     // Check if restaurant is open using the proper opening hours
     const checkOpenStatus = () => {
       if (!restaurant) return;
-      const isOpen = checkIfOpen(restaurant.openingHours);
+      const isOpen = checkIfOpen({
+        open: restaurant.opening_time,
+        close: restaurant.closing_time
+      });
       setIsOpen(isOpen);
     };
 
@@ -105,6 +157,22 @@ const RestaurantDetails = () => {
   const getTodayHours = (openingHours: OpeningHours) => {
     return `${openingHours.open} - ${openingHours.close}`;
   };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.loadingText}>Loading restaurant details...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Error: {error}</Text>
+      </View>
+    );
+  }
 
   if (!restaurant) {
     return (
@@ -128,7 +196,7 @@ const RestaurantDetails = () => {
           }
         ]}>
           <Animated.Image
-            source={{ uri: restaurant.imageUrl }}
+            source={{ uri: restaurant.image_url }}
             style={[
               styles.restaurantImage,
               {
@@ -171,7 +239,7 @@ const RestaurantDetails = () => {
       ]}>
         {isSmallScreen && (
           <Animated.Image
-            source={{ uri: restaurant.imageUrl }}
+            source={{ uri: restaurant.image_url }}
             style={[
               styles.headerBackgroundImage,
               {
@@ -224,7 +292,7 @@ const RestaurantDetails = () => {
                 ]}
               >
                 <MaterialIcons
-                  name={index < restaurant.rating ? 'star' : 'star-border'}
+                  name={index < (restaurant.review || 0) ? 'star' : 'star-border'}
                   size={isLargeScreen ? 32 : 24}
                   color="#FFD700"
                 />
@@ -252,7 +320,10 @@ const RestaurantDetails = () => {
                 marginLeft: isLargeScreen ? 12 : 8,
               }
             ]}>
-              {isOpen ? 'Open' : 'Closed'} • {getTodayHours(restaurant.openingHours)}
+              {isOpen ? 'Open' : 'Closed'} • {getTodayHours({
+                open: restaurant.opening_time,
+                close: restaurant.closing_time
+              })}
             </Text>
           </View>
         </View>
@@ -310,7 +381,7 @@ const RestaurantDetails = () => {
             marginBottom: isLargeScreen ? 20 : 15,
           }
         ]}>Reviews</Text>
-        {restaurant.reviews.map((review) => (
+        {restaurant.reviews?.map((review) => (
           <View key={review.date} style={[
             styles.reviewItem,
             {
@@ -434,11 +505,17 @@ const styles = StyleSheet.create({
   hoursText: {
     fontWeight: '500',
   },
-  errorText: {
-    fontSize: 18,
+  loadingText: {
+    fontSize: 16,
     textAlign: 'center',
     marginTop: 20,
     color: '#666',
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#ff4444',
   },
 });
 

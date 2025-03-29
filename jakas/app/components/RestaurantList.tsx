@@ -2,7 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Animated, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { restaurants, Restaurant, OpeningHours } from '../data/restaurants';
+
+interface OpeningHours {
+  open: string;
+  close: string;
+}
+
+interface Restaurant {
+  id: number;
+  name: string;
+  description: string;
+  cuisine: string;
+  price_range: string;
+  address: string;
+  opening_time: string;
+  closing_time: string;
+  image_url: string;
+  review: number | null;
+}
 
 const checkIfOpen = (openingHours: OpeningHours): boolean => {
   const now = new Date();
@@ -21,7 +38,28 @@ export default function RestaurantList() {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
   const buttonScaleAnim = React.useRef(new Animated.Value(1)).current;
-  const [localRestaurants, setLocalRestaurants] = useState<Restaurant[]>(restaurants);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchRestaurants();
+  }, []);
+
+  const fetchRestaurants = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/restaurants');
+      if (!response.ok) {
+        throw new Error('Failed to fetch restaurants');
+      }
+      const data = await response.json();
+      setRestaurants(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -31,24 +69,7 @@ export default function RestaurantList() {
     }).start();
   }, []);
 
-  useEffect(() => {
-    const updateRestaurants = () => {
-      const updatedRestaurants = [...restaurants].sort((a, b) => {
-        const aIsOpen = checkIfOpen(a.openingHours);
-        const bIsOpen = checkIfOpen(b.openingHours);
-        if (aIsOpen === bIsOpen) return 0;
-        return aIsOpen ? -1 : 1;
-      });
-      setLocalRestaurants(updatedRestaurants);
-    };
-
-    updateRestaurants();
-    const interval = setInterval(updateRestaurants, 60000); // Update every minute
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleRestaurantPress = (id: string) => {
+  const handleRestaurantPress = (id: number) => {
     Animated.sequence([
       Animated.timing(scaleAnim, {
         toValue: 0.95,
@@ -97,7 +118,10 @@ export default function RestaurantList() {
   };
 
   const renderRestaurantItem = ({ item }: { item: Restaurant }) => {
-    const isOpen = checkIfOpen(item.openingHours);
+    const isOpen = checkIfOpen({
+      open: item.opening_time,
+      close: item.closing_time
+    });
     
     return (
       <Animated.View
@@ -138,7 +162,7 @@ export default function RestaurantList() {
                   {[...Array(5)].map((_, index) => (
                     <MaterialIcons
                       key={index}
-                      name={index < item.rating ? 'star' : 'star-border'}
+                      name={index < (item.review || 0) ? 'star' : 'star-border'}
                       size={16}
                       color={!isOpen ? '#999' : '#FFD700'}
                     />
@@ -146,7 +170,7 @@ export default function RestaurantList() {
                 </View>
                 <View style={styles.priceContainer}>
                   <Text style={[styles.priceText, !isOpen && styles.closedText]}>
-                    {item.priceRange === 'budget' ? '€' : item.priceRange === 'moderate' ? '€€' : '€€€'}
+                    {item.price_range === 'budget' ? '€' : item.price_range === 'moderate' ? '€€' : '€€€'}
                   </Text>
                 </View>
               </View>
@@ -171,7 +195,7 @@ export default function RestaurantList() {
                     color={!isOpen ? '#999' : '#666'} 
                   />
                   <Text style={[styles.hoursText, !isOpen && styles.closedText]}>
-                    {item.openingHours.open} - {item.openingHours.close}
+                    {item.opening_time} - {item.closing_time}
                   </Text>
                 </View>
                 <View style={styles.statusContainer}>
@@ -191,6 +215,22 @@ export default function RestaurantList() {
       </Animated.View>
     );
   };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.loadingText}>Loading restaurants...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Error: {error}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -223,9 +263,9 @@ export default function RestaurantList() {
           </View>
         </View>
         <FlatList
-          data={localRestaurants}
+          data={restaurants}
           renderItem={renderRestaurantItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
@@ -392,5 +432,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     marginLeft: 4,
+  },
+  loadingText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#666',
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#ff4444',
   },
 }); 

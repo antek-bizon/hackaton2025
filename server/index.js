@@ -1,16 +1,21 @@
 const express = require('express');
 const sqlite = require('sqlite-async')
 const ai = require('@google/generative-ai')
+const cors = require('cors');
 const app = express()
 const GEMINI_API_KEY = 'AIzaSyDwMduRX6cq2EDZkrlbt01ku83-uEkP2gk'
 const genAI = new ai.GoogleGenerativeAI(GEMINI_API_KEY);
 const PORT = process.env.PORT || 3000
+
+// Enable CORS for all routes
+app.use(cors());
+
 let db
 createDatabase()
   .then((_db) => {
     db = _db
     console.log('Database ready')
-    //addData(db)
+    addData(db)
   })
 
 async function createDatabase() {
@@ -174,20 +179,19 @@ app.get('/api/restaurants', async (req, res) => {
 app.get('/api/restaurants/:id', async (req, res) => {
   try {
     const id = req.params.id
-    const does_exist = await db.all('SELECT id,  FROM restaurants WHERE id = ?', [id])
-    if (does_exist.length > 0) {
-      const result = await getRestaurantScore(id)
+    const restaurant = await db.get('SELECT * FROM restaurants WHERE id = ?', [id])
+    if (restaurant) {
       // Transform the data to match the frontend interface
       const transformedResult = {
-        ...result,
+        ...restaurant,
         openingHours: {
-          open: result.opening_time,
-          close: result.closing_time
+          open: restaurant.opening_time,
+          close: restaurant.closing_time
         }
       }
       res.json(transformedResult)
     } else {
-      res.status(400).json(jsonResponse({ message: 'Invalid restaurant id', status: 400 }))
+      res.status(404).json(jsonResponse({ message: 'Restaurant not found', status: 404 }))
     }
   } catch (err) {
     handleError(res, err)
