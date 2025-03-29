@@ -52,60 +52,57 @@ async function analyzeRestaurants(reviews) {
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   
   const prompt = `
-  Wszystkie recenzje są w języku polskim. Proszę, przeprowadź analizę oraz generuj odpowiedzi w języku polskim.
+   Wszystkie recenzje są w języku polskim. Proszę, przeprowadź analizę oraz generuj odpowiedzi w języku polskim.
 
-    You are given a JSON array of restaurant reviews. Each review contains the following fields:
-      - restaurantName
-      - rating
-      - textReviews
-      - averagePrice
+  You are given a JSON array of restaurant reviews. Each review contains the following fields:
+    - restaurantName
+    - rating
+    - textReviews
+    - averagePrice
 
-    Your task is to perform the following steps for each restaurant:
+  Your task is to perform the following steps for each restaurant:
 
-    1. **Extraction:**  
-       Extract the four fields (restaurantName, rating, textReviews, averagePrice) from each review.
-    
-    2. **Portion-Based Rating:**  
-       For each review, analyze the "textReviews" field and assign a portion-based rating (from 1 to 10) using a function f(review) that only considers the description of the portion size.  
-       For instance, keywords like "ogromne", "duże", "hojne" should result in a higher score, while words like "małe", 
-       "mikroskopijne", "niewystarczające" should result in a lower score. Just partition words that in polish mean "big" or "small". 
-       For example: "Ogromne" should result in a higher score, while "małe" should result in a lower score.
-    
-    3. **Aggregate per Restaurant:**  
-       For each restaurant (group reviews by restaurantName), compute the following:
-       - avg_f: The average of the portion-based ratings assigned by f(review).
-       - avg_rating: The average of the original "rating" values.
-       - avg_price: The average of the "averagePrice" values.
-    
-    4. **Value for Money Calculatpythonion:**  
-       For each restaurant, calculate the value for money score using the formula:
-       
-           compareFun = avg_f × avg_rating × (1 / avg_price)
-       
-       This score represents the balance between portion size, overall quality (original rating), and cost.
-    
-    5. **Output:**  
-       Provide:
-         - Which restaurant offers the best value for money (highest compareFun score).
-         - A ranking of restaurants based on the compareFun score.
-         - Specific details about portion sizes mentioned in the reviews.
-         - Any price-related praises or concerns mentioned in the reviews.
-    
-    Please provide your output in clear JSON format.
-    This JSON format should be in the following format:
-    {
-      "analysisResults": [
-        {
-          "restaurantName": "Restaurant Name",
-          "compareFun": 0.0,
-          "aiComment": "Comment" 
-          // This above comment should be in polish, and has to be  standarized according to the compareFun score.
-          // So if compareFun is above 0.8 say "Najesz sie niewielkim kosztem"
-          // If compareFun is between 0.5 and 0.8 say "Mogłoby być lepiej"
-          // If compareFun is below 0.5 say "Dużo wydasz i sie nie najesz"
-        }
-      ]
-    }
+  1. **Extraction:**  
+      Extract the four fields (restaurantName, rating, textReviews, averagePrice) from each review.
+  
+  2. **Portion-Based Rating:**  
+      For each review, analyze the "textReviews" field and assign a portion-based rating (from 1 to 10) using a function f(review) that only considers the description of the portion size.  
+      For instance, keywords like "ogromne", "duże", "hojne" should result in a higher score, while words like "małe", 
+      "mikroskopijne", "niewystarczające" should result in a lower score. Just partition words that in polish mean "big" or "small". 
+      For example: "Ogromne" should result in a higher score, while "małe" should result in a lower score.
+  
+  3. **Aggregate per Restaurant:**  
+      For each restaurant (group reviews by restaurantName), compute the following:
+      - avg_f: The average of the portion-based ratings assigned by f(review).
+      - avg_rating: The average of the original "rating" values.
+      - avg_price: The average of the "averagePrice" values.
+  
+  4. **Value for Money Calculation:**  
+      For each restaurant, calculate the value for money score using the formula:
+      
+          compareFun = avg_f × avg_rating × (1 / avg_price)
+      
+      This score represents the balance between portion size, overall quality (original rating), and cost.
+  
+  5. **Output:**  
+      Provide your analysis in the following JSON format only, without any markdown, comments, or additional text:
+      {
+        "analysisResults": [
+          {
+            "restaurantName": "Restaurant Name",
+            "compareFun": 0.0,
+            "aiComment": "Comment" 
+          }
+        ]
+      }
+      
+      The aiComment should be in Polish and standardized according to the compareFun score:
+      - If compareFun is above 0.8, say "Najesz sie niewielkim kosztem"
+      - If compareFun is between 0.5 and 0.8, say "Mogłoby być lepiej"
+      - If compareFun is below 0.5, say "Dużo wydasz i sie nie najesz"
+  
+  IMPORTANT: Return ONLY the JSON object, no markdown formatting (no \`\`\`json or \`\`\`python), no explanations before or after.
+  
   
   JSON Data:
   ${JSON.stringify(reviews, null, 2)}
@@ -118,10 +115,9 @@ async function analyzeRestaurants(reviews) {
 
       // Remove markdown formatting (```json and ```)
       const cleanOutput = outputText.replace(/```json/g, "").replace(/```/g, "");
-
-      // Parse the cleaned output to ensure it's valid JSON
       console.log(cleanOutput)
-      return JSON.parse(cleanOutput);
+      // Parse the cleaned output to ensure it's valid JSON
+      return JSON.parse(cleanOutput).analysisResults[0];
   } catch (error) {
       console.error('Error analyzing restaurants:', error);
       throw error;
@@ -133,18 +129,19 @@ function jsonResponse({ message = 'Success', status = 200, data = {} }) {
 }
 
 async function getRestaurantScore(id) {
-  const queue_items = await db.all('SELECT * FROM queue WHERE restaurant_id = ? AND DATE >', [id, Date.now() - 10000])
-  if (queue_items.length < 1) {
+  // const queue_items = await db.all('SELECT * FROM queue WHERE restaurant_id = ?', [id])
+  // if (queue_items.length < 1) {
     // If not in cache or queue make a request to AI
     const reviews = await db.all('SELECT average_price, review, rating FROM reviews WHERE restaurant_id = ?', [id])
-    const result = Promise.all([
+    const result = await Promise.all([
       //db.run('INSERT INTO queue VALUES (?)', [id]),
       analyzeRestaurants(reviews)]).then((result) => {
-        db.run('UPDATE restaurants SET rating = ?, ai_comment = ? WHERE id = ?', [result.compareFun, result.aiComment, id])
+        const item = result[0]
+        db.run('UPDATE restaurants SET rating = ?, ai_comment = ? WHERE id = ?', [item.compareFun, item.aiComment, id])
       }).finally(() => {
-        db.run('DELETE FROM queue WHERE restaurant_id = ?'[id])
+        //db.run('DELETE FROM queue WHERE restaurant_id = ?'[id])
       })
-  }
+  // }
 
   return jsonResponse({ message: 'Please wait, your request is still in progress' })
 }
@@ -164,10 +161,10 @@ app.get('/api/restaurants', async (req, res) => {
 })
 
 
-app.get('/api/restaurants/:id', async (req, res) => {
+app.put('/api/restaurants/:id', async (req, res) => {
   try {
     const id = req.params.id
-    const does_exist = await db.all('SELECT id,  FROM restaurants WHERE id = ?', [id])
+    const does_exist = await db.all('SELECT id FROM restaurants WHERE id = ?', [id])
     if (does_exist.length > 0) {
       const result = await getRestaurantScore(id)
       res.json(result)
