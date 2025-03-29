@@ -1,12 +1,23 @@
-import { View, TextInput, StyleSheet, Animated, Dimensions, Text, ScrollView } from "react-native";
+import { View, TextInput, StyleSheet, Animated, Dimensions, Text, ScrollView, NativeSyntheticEvent, NativeScrollEvent, TouchableOpacity } from "react-native";
 import { StatusBar } from 'expo-status-bar';
-import React, { useRef } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
+import RestaurantList from '../components/RestaurantList';
 
 export default function MainScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
   const pattern1Position = useRef(new Animated.Value(0)).current;
   const pattern2Position = useRef(new Animated.Value(0)).current;
   const pattern3Position = useRef(new Animated.Value(0)).current;
+  
+  // Define snap points (as percentages of screen height)
+  const snapPoints = [0, 0.2, 0.3, 0.38, 0.6];
+  const [isScrolling, setIsScrolling] = useState(false);
+  const [currentSnapIndex, setCurrentSnapIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // Add state for view control
+  const [showRestaurantList, setShowRestaurantList] = useState(false);
 
   // Background patterns animation
   React.useEffect(() => {
@@ -66,7 +77,7 @@ export default function MainScreen() {
   // Title color changes as it approaches the top
   const titleColorInterpolation = scrollY.interpolate({
     inputRange: [height * 0.15, height * 0.2],
-    outputRange: ['rgb(0, 0, 0)', 'rgb(46, 204, 113)'],
+    outputRange: ['rgb(255, 255, 255)', 'rgb(46, 204, 113)'],
     extrapolate: 'clamp'
   });
 
@@ -102,6 +113,82 @@ export default function MainScreen() {
     outputRange: [100, 0], // More travel from bottom
     extrapolate: 'clamp'
   });
+
+  // Handle scroll events
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    { 
+      useNativeDriver: false,
+      listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        
+        // Find nearest snap point when scrolling stops
+        if (!isAnimating) {
+          const closestSnapPoint = findClosestSnapPoint(offsetY);
+          setCurrentSnapIndex(closestSnapPoint);
+        }
+      }
+    }
+  );
+
+  // Handle when scrolling begins
+  const handleScrollBegin = () => {
+    setIsScrolling(true);
+  };
+
+  // Handle when scrolling ends
+  const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setIsScrolling(false);
+    
+    // Find closest snap point
+    const closestIndex = findClosestSnapPoint(offsetY);
+    
+    // Snap to closest point
+    setIsAnimating(true);
+    scrollToPosition(snapPoints[closestIndex] * height);
+  };
+  
+  // Find the closest snap point index based on current scroll position
+  const findClosestSnapPoint = useCallback((offsetY: number) => {
+    let closestIndex = 0;
+    let minDistance = Math.abs(offsetY - snapPoints[0] * height);
+    
+    for (let i = 1; i < snapPoints.length; i++) {
+      const distance = Math.abs(offsetY - snapPoints[i] * height);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = i;
+      }
+    }
+    
+    return closestIndex;
+  }, [height]);
+  
+  // Scroll to specified position with animation
+  const scrollToPosition = useCallback((position: number) => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({
+        y: position,
+        animated: true
+      });
+      
+      // Reset animating state after animation completes
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 500);
+    }
+  }, []);
+
+  // Handle search button press
+  const handleSearch = () => {
+    setShowRestaurantList(true);
+  };
+
+  // Render main content view
+  if (showRestaurantList) {
+    return <RestaurantList onBack={() => setShowRestaurantList(false)} />;
+  }
 
   return (
     <View style={styles.mainContainer}>
@@ -176,15 +263,17 @@ export default function MainScreen() {
         />
         
         <Animated.ScrollView
+          ref={scrollViewRef}
           style={styles.scrollView}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false }
-          )}
+          onScroll={handleScroll}
           scrollEventThrottle={16}
+          onScrollBeginDrag={handleScrollBegin}
+          onScrollEndDrag={handleScrollEnd}
+          onMomentumScrollEnd={handleScrollEnd}
+          decelerationRate="fast"
         >
           <View style={styles.contentContainer}>
-            <View style={{ height: height * 0.7 }} />
+            <View style={{ height: height * 0.6 }} />
             
             <Animated.View 
               style={[
@@ -209,11 +298,19 @@ export default function MainScreen() {
                 }
               ]}
             >
-              <TextInput
-                style={styles.searchBar}
-                placeholder="Wpisz adres dostawy..."
-                placeholderTextColor="#666"
-              />
+              <View style={styles.searchInputGroup}>
+                <TextInput
+                  style={styles.searchBar}
+                  placeholder="Wpisz adres dostawy..."
+                  placeholderTextColor="#666"
+                />
+                <TouchableOpacity 
+                  style={styles.searchButton}
+                  onPress={handleSearch}
+                >
+                  <Text style={styles.searchButtonText}>Wyszukaj</Text>
+                </TouchableOpacity>
+              </View>
             </Animated.View>
 
             <View style={{ height: height * 0.2 }} />
@@ -272,7 +369,10 @@ export default function MainScreen() {
             styles.titleText,
             { color: titleColorInterpolation }
           ]}>Bool</Animated.Text>
-          <Text style={styles.titleText}>k</Text>
+          <Text style={[
+            styles.titleText, 
+            { color: 'rgb(255, 255, 255)' }
+          ]}>k</Text>
         </Animated.View>
       </View>
     </View>
@@ -353,11 +453,31 @@ const styles = StyleSheet.create({
     marginLeft: 40,
     marginBottom: 60,
   },
+  searchInputGroup: {
+    flexDirection: 'row',
+    width: '100%',
+    alignItems: 'center',
+  },
   searchBar: {
     height: 60,
     paddingHorizontal: 20,
     fontSize: 18,
     color: '#333',
+    flex: 1,
+  },
+  searchButton: {
+    backgroundColor: '#2ecc71',
+    height: 50,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  searchButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   gallerySection: {
     width: '100%',
