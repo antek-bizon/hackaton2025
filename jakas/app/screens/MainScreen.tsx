@@ -41,6 +41,10 @@ export default function MainScreen() {
   const pattern10Position = useRef(new Animated.Value(0)).current;
   const pattern11Position = useRef(new Animated.Value(0)).current;
   const pattern12Position = useRef(new Animated.Value(0)).current;
+  const pattern13Position = useRef(new Animated.Value(0)).current;
+  const pattern14Position = useRef(new Animated.Value(0)).current;
+  const pattern15Position = useRef(new Animated.Value(0)).current;
+  const pattern16Position = useRef(new Animated.Value(0)).current;
   
   // Define snap points to align with animation endpoints
   const snapPoints = [
@@ -59,10 +63,10 @@ export default function MainScreen() {
   // Add state for view control
   const [showRestaurantList, setShowRestaurantList] = useState(false);
 
-  // Add animation states to track
-  const titleAnimationComplete = useRef(false);
-  const introAnimationComplete = useRef(false);
-  const searchBarAnimationComplete = useRef(false);
+  // Add animation values
+  const introTextAnimatedY = useRef(new Animated.Value(50)).current;
+  const searchBarAnimatedY = useRef(new Animated.Value(50)).current;
+  const animatedOpacity = useRef(new Animated.Value(0)).current;
 
   // State to track if components have been revealed
   const [introTextRevealed, setIntroTextRevealed] = useState(false);
@@ -251,6 +255,62 @@ export default function MainScreen() {
           }),
         ])
       ),
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pattern13Position, {
+            toValue: 1,
+            duration: 28000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pattern13Position, {
+            toValue: 0,
+            duration: 28000,
+            useNativeDriver: true,
+          }),
+        ])
+      ),
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pattern14Position, {
+            toValue: 1,
+            duration: 32000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pattern14Position, {
+            toValue: 0,
+            duration: 32000,
+            useNativeDriver: true,
+          }),
+        ])
+      ),
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pattern15Position, {
+            toValue: 1,
+            duration: 27000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pattern15Position, {
+            toValue: 0,
+            duration: 27000,
+            useNativeDriver: true,
+          }),
+        ])
+      ),
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pattern16Position, {
+            toValue: 1,
+            duration: 30000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pattern16Position, {
+            toValue: 0,
+            duration: 30000,
+            useNativeDriver: true,
+          }),
+        ])
+      ),
     ]).start();
   }, []);
 
@@ -315,13 +375,6 @@ export default function MainScreen() {
       useNativeDriver: false,
       listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const offsetY = event.nativeEvent.contentOffset.y;
-        
-        // Track animation states
-        if (offsetY >= height * 0.15 && !titleAnimationComplete.current) {
-          titleAnimationComplete.current = true;
-        } else if (offsetY < height * 0.15 && titleAnimationComplete.current) {
-          titleAnimationComplete.current = false;
-        }
         
         // Mark intro text as revealed once we pass the threshold
         if (offsetY >= height * 0.22) {
@@ -453,6 +506,34 @@ export default function MainScreen() {
       }
     });
   };
+
+  // Add animation when component mounts
+  React.useEffect(() => {
+    // Set all revealed states to true immediately
+    setIntroTextRevealed(true);
+    setSearchBarRevealed(true);
+    
+    // Animate in with a slight delay for each element
+    Animated.parallel([
+      Animated.timing(animatedOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true
+      }),
+      Animated.spring(introTextAnimatedY, { 
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true 
+      }),
+      Animated.spring(searchBarAnimatedY, { 
+        toValue: 0,
+        tension: 45,
+        friction: 7,
+        useNativeDriver: true 
+      })
+    ]).start();
+  }, []);
 
   // Render main content view
   if (showRestaurantList) {
@@ -909,6 +990,150 @@ export default function MainScreen() {
           ]}
         />
         
+        <Animated.Image
+          source={require('../../assets/images/pudzian.png')}
+          style={[
+            styles.pattern,
+            styles.patternPudzian1,
+            {
+              transform: [
+                {
+                  translateX: pattern13Position.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-100, width + 100],
+                  }),
+                },
+                {
+                  translateY: pattern13Position.interpolate({
+                    inputRange: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                    outputRange: [height * 0.2, height * 0.25, height * 0.3, height * 0.25, height * 0.2, height * 0.15],
+                  }),
+                },
+                {
+                  rotate: pattern13Position.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['-15deg', '15deg'],
+                  }),
+                },
+                {
+                  scale: pattern13Position.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.3, 0.4, 0.3],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+        
+        <Animated.Image
+          source={require('../../assets/images/pudzian.png')}
+          style={[
+            styles.pattern,
+            styles.patternPudzian2,
+            {
+              transform: [
+                {
+                  translateX: pattern14Position.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [width, -100],
+                  }),
+                },
+                {
+                  translateY: pattern14Position.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [height * 0.5, height * 0.4, height * 0.5],
+                  }),
+                },
+                {
+                  rotate: pattern14Position.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: ['10deg', '0deg', '-10deg'],
+                  }),
+                },
+                {
+                  scale: pattern14Position.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.25, 0.35, 0.25],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+        
+        <Animated.Image
+          source={require('../../assets/images/pudzian.png')}
+          style={[
+            styles.pattern,
+            styles.patternPudzian3,
+            {
+              transform: [
+                {
+                  translateX: pattern15Position.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [width * 0.3, width * 0.7],
+                  }),
+                },
+                {
+                  translateY: pattern15Position.interpolate({
+                    inputRange: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                    outputRange: [height * 0.8, height * 0.75, height * 0.7, height * 0.65, height * 0.7, height * 0.75],
+                  }),
+                },
+                {
+                  rotate: pattern15Position.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['-5deg', '5deg'],
+                  }),
+                },
+                {
+                  scale: pattern15Position.interpolate({
+                    inputRange: [0, 0.3, 0.6, 1],
+                    outputRange: [0.2, 0.22, 0.25, 0.2],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+        
+        <Animated.Image
+          source={require('../../assets/images/pudzian.png')}
+          style={[
+            styles.pattern,
+            styles.patternPudzian4,
+            {
+              transform: [
+                {
+                  translateX: pattern16Position.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [width * 0.1, width * 0.9],
+                  }),
+                },
+                {
+                  translateY: pattern16Position.interpolate({
+                    inputRange: [0, 0.3, 0.7, 1],
+                    outputRange: [height * 0.35, height * 0.3, height * 0.4, height * 0.35],
+                  }),
+                },
+                {
+                  rotate: pattern16Position.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: ['20deg', '0deg', '-20deg'],
+                  }),
+                },
+                {
+                  scale: pattern16Position.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.28, 0.33, 0.28],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+        
         <Animated.ScrollView
           ref={scrollViewRef}
           style={styles.scrollView}
@@ -920,21 +1145,22 @@ export default function MainScreen() {
           decelerationRate="fast"
         >
           <View style={styles.contentContainer}>
-            <View style={{ height: height * 0.6 }} />
+            <View style={{ height: height * 0.5 }} /> {/* Increased from 0.46 to 0.5 */}
             
             <Animated.View 
               style={[
                 styles.introSection,
                 {
-                  opacity: calculatedIntroOpacity(),
+                  opacity: animatedOpacity,
                   transform: [{ 
-                    translateY: introTextRevealed ? 0 : introTextTranslateY 
+                    translateY: introTextAnimatedY
                   }],
                 }
               ]}
             >
               <Text style={styles.introText}>
-                Najlepszy sposób by zaspokoić głód dzięki rewolucyjnemu Boolk Meter™
+                Najlepszy sposób by zaspokoić głód{"\n"}
+                dzięki rewolucyjnemu Boolk Meter
               </Text>
             </Animated.View>
 
@@ -943,9 +1169,9 @@ export default function MainScreen() {
                 style={[
                   styles.searchContainerModern,
                   { 
-                    opacity: calculatedSearchOpacity(),
+                    opacity: animatedOpacity,
                     transform: [{ 
-                      translateY: searchBarRevealed ? 0 : searchBarTranslateY 
+                      translateY: searchBarAnimatedY
                     }]
                   }
                 ]}
@@ -965,57 +1191,12 @@ export default function MainScreen() {
                   </TouchableOpacity>
                 </View>
               </Animated.View>
-              
-              <Animated.View
-                style={[
-                  styles.imageContainer,
-                  {
-                    opacity: calculatedSearchOpacity(),
-                    transform: [
-                      { translateY: searchBarRevealed ? 0 : searchBarTranslateY }
-                    ]
-                  }
-                ]}
-              >
-                <Image 
-                  source={require('../../assets/images/pudzian.png')} 
-                  style={styles.pudzianImage}
-                  resizeMode="contain"
-                />
-              </Animated.View>
             </View>
 
             <View style={{ height: height * 0.2 }} />
 
             <View style={styles.gallerySection}>
-              <Animated.View 
-                style={[
-                  styles.featureCard,
-                  {
-                    opacity: scrollY.interpolate({
-                      inputRange: [height * 0.6, height * 0.7],
-                      outputRange: [0, 1],
-                      extrapolate: 'clamp'
-                    }),
-                    transform: [
-                      { 
-                        translateY: scrollY.interpolate({
-                          inputRange: [height * 0.6, height * 0.7],
-                          outputRange: [50, 0],
-                          extrapolate: 'clamp'
-                        })
-                      },
-                      {
-                        scale: scrollY.interpolate({
-                          inputRange: [height * 0.6, height * 0.7],
-                          outputRange: [0.95, 1],
-                          extrapolate: 'clamp'
-                        })
-                      }
-                    ]
-                  }
-                ]}
-              >
+              <View style={styles.featureCard}>
                 <Image 
                   source={{ uri: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000&auto=format&fit=crop" }} 
                   style={styles.featureImageLarge}
@@ -1025,77 +1206,23 @@ export default function MainScreen() {
                 <Text style={styles.featureDescription}>
                   Z racji coraz większych kosztów życia dla studentów w miastach Boolk dzięki technologi AI wyszukuje miejsca z najlepszym stosunkiem ilości jedzenia do ceny. Dzięki temu użytkownicy mogą spróbować nowych smaków, bez obaw o swój portfel.
                 </Text>
-              </Animated.View>
+              </View>
 
-              <Animated.View 
-                style={[
-                  styles.featureCard,
-                  {
-                    opacity: scrollY.interpolate({
-                      inputRange: [height * 0.8, height * 0.9],
-                      outputRange: [0, 1],
-                      extrapolate: 'clamp'
-                    }),
-                    transform: [
-                      { 
-                        translateY: scrollY.interpolate({
-                          inputRange: [height * 0.8, height * 0.9],
-                          outputRange: [50, 0],
-                          extrapolate: 'clamp'
-                        })
-                      },
-                      {
-                        scale: scrollY.interpolate({
-                          inputRange: [height * 0.8, height * 0.9],
-                          outputRange: [0.95, 1],
-                          extrapolate: 'clamp'
-                        })
-                      }
-                    ]
-                  }
-                ]}
-              >
+              <View style={styles.featureCard}>
                 <IconClock />
                 <Text style={styles.featureTitle}>Co to Boolk Meter</Text>
                 <Text style={styles.featureDescription}>
                   Boolk używa gemini API do analizy opinii klientów by wydobyć najważniejsze informacje: Jak duże są porcje jedzenia.
                 </Text>
-              </Animated.View>
+              </View>
 
-              <Animated.View 
-                style={[
-                  styles.featureCard,
-                  {
-                    opacity: scrollY.interpolate({
-                      inputRange: [height * 1.0, height * 1.1],
-                      outputRange: [0, 1],
-                      extrapolate: 'clamp'
-                    }),
-                    transform: [
-                      { 
-                        translateY: scrollY.interpolate({
-                          inputRange: [height * 1.0, height * 1.1],
-                          outputRange: [50, 0],
-                          extrapolate: 'clamp'
-                        })
-                      },
-                      {
-                        scale: scrollY.interpolate({
-                          inputRange: [height * 1.0, height * 1.1],
-                          outputRange: [0.95, 1],
-                          extrapolate: 'clamp'
-                        })
-                      }
-                    ]
-                  }
-                ]}
-              >
+              <View style={styles.featureCard}>
                 <IconTarget />
                 <Text style={styles.featureTitle}>Technologie</Text>
                 <Text style={styles.featureDescription}>
                   Our AI-powered system learns your preferences and suggests meals you'll love. Technology at your service.
                 </Text>
-              </Animated.View>
+              </View>
             </View>
           </View>
         </Animated.ScrollView>
@@ -1308,6 +1435,34 @@ const styles = StyleSheet.create({
     height: 70,
     tintColor: 'rgba(246, 158, 123, 0.6)', // Light brownish for fried chicken
   },
+  patternPudzian1: {
+    top: height * 0.1,
+    left: -width * 0.2,
+    width: 180,
+    height: 180,
+    opacity: 0.3,
+  },
+  patternPudzian2: {
+    top: height * 0.4,
+    right: -width * 0.1,
+    width: 150,
+    height: 150,
+    opacity: 0.25,
+  },
+  patternPudzian3: {
+    bottom: height * 0.1,
+    left: width * 0.4,
+    width: 120,
+    height: 120,
+    opacity: 0.2,
+  },
+  patternPudzian4: {
+    top: height * 0.25,
+    left: width * 0.15,
+    width: 160,
+    height: 160,
+    opacity: 0.35,
+  },
   contentContainer: {
     minHeight: height * 2,
     alignItems: 'center',
@@ -1319,6 +1474,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 10,
     height: height * 0.15,
+    marginBottom: 0,
   },
   titleLettersContainer: {
     flexDirection: 'row',
@@ -1331,28 +1487,33 @@ const styles = StyleSheet.create({
   },
   introSection: {
     paddingHorizontal: 0,
-    marginBottom: 40,
-    alignSelf: 'flex-start',
-    marginLeft: 100,
-    marginRight: 100,
-    width: '80%',
+    marginBottom: 15,
+    alignSelf: 'center',
+    width: '100%',
+    justifyContent: 'center',
+    minHeight: height * 0.1,
+    display: 'flex',
+    alignItems: 'center',
+    paddingTop: 5,
   },
   introText: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: 'white',
-    textAlign: 'left',
-    lineHeight: 42,
+    textAlign: 'center',
+    lineHeight: 36,
+    paddingHorizontal: 20,
+    maxWidth: width * 0.9,
+    alignSelf: 'center',
   },
   searchAndImageContainer: {
-    flexDirection: 'row',
     width: '100%',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 60,
+    marginBottom: 20,
     position: 'relative',
-    paddingLeft: 100,
-    paddingRight: 100,
+    paddingLeft: 20,
+    paddingRight: 20,
   },
   searchContainerModern: {
     width: '80%',
@@ -1360,8 +1521,7 @@ const styles = StyleSheet.create({
     padding: 2,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 16,
-    alignSelf: 'flex-start',
-    marginLeft: 0,
+    alignSelf: 'center',
     zIndex: 2,
     overflow: 'hidden',
     borderWidth: 1,
@@ -1425,6 +1585,8 @@ const styles = StyleSheet.create({
     padding: 30,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
+    transform: [{ scale: 1 }],
+    opacity: 1,
   },
   featureTitle: {
     fontSize: 24,
