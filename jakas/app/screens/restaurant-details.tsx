@@ -1,8 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Animated, Image, Dimensions } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { restaurants } from '../data/restaurants';
+
+const { width: screenWidth } = Dimensions.get('window');
+const imageWidth = screenWidth * 0.8; // 80% of screen width
+const imageHeight = screenWidth * 0.2; // 20% of screen width
+const imageMargin = (screenWidth - imageWidth) / 2; // 10% margin on each side
 
 const RestaurantDetails = () => {
   const { id } = useLocalSearchParams();
@@ -32,6 +37,13 @@ const RestaurantDetails = () => {
 
   return (
     <ScrollView style={styles.container}>
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: restaurant.imageUrl }}
+          style={styles.restaurantImage}
+          resizeMode="cover"
+        />
+      </View>
       <View style={styles.header}>
         <Text style={styles.restaurantName}>{restaurant.name}</Text>
         <View style={styles.ratingContainer}>
@@ -95,6 +107,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  imageContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingTop: 20,
+  },
+  restaurantImage: {
+    width: imageWidth,
+    height: imageHeight,
+    borderRadius: 12,
+    marginHorizontal: imageMargin,
   },
   header: {
     padding: 20,

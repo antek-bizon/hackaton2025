@@ -4,6 +4,7 @@ export interface Restaurant {
   rating: number;
   description: string;
   reviews: Review[];
+  imageUrl: string;
 }
 
 export interface Review {
@@ -19,6 +20,7 @@ export const restaurants: Restaurant[] = [
     name: 'The Tasty Corner',
     rating: 8,
     description: 'Welcome to The Tasty Corner, where culinary excellence meets comfort. Our restaurant offers a unique blend of traditional and modern cuisine, prepared with the finest ingredients by our expert chefs.',
+    imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836',
     reviews: [
       {
         id: '1',
@@ -39,6 +41,7 @@ export const restaurants: Restaurant[] = [
     name: 'Golden Plate Bistro',
     rating: 9,
     description: 'Experience luxury dining at its finest. Golden Plate Bistro combines French culinary techniques with local ingredients to create unforgettable dishes.',
+    imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999',
     reviews: [
       {
         id: '3',
@@ -59,6 +62,7 @@ export const restaurants: Restaurant[] = [
     name: 'Spice Garden',
     rating: 7,
     description: 'Authentic Indian cuisine in a warm, welcoming atmosphere. Our chefs bring traditional recipes to life with modern techniques.',
+    imageUrl: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe',
     reviews: [
       {
         id: '5',
@@ -79,6 +83,7 @@ export const restaurants: Restaurant[] = [
     name: 'Ocean View Seafood',
     rating: 9,
     description: 'Fresh seafood with stunning ocean views. Our daily catch is prepared to perfection with Mediterranean influences.',
+    imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b',
     reviews: [
       {
         id: '7',
@@ -99,6 +104,7 @@ export const restaurants: Restaurant[] = [
     name: 'Urban Grill House',
     rating: 8,
     description: 'Modern steakhouse with a focus on premium cuts and craft cocktails. Our dry-aged beef is a must-try.',
+    imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947',
     reviews: [
       {
         id: '9',
@@ -119,6 +125,7 @@ export const restaurants: Restaurant[] = [
     name: 'Sushi Master',
     rating: 9,
     description: 'Authentic Japanese cuisine with master sushi chefs. Experience the art of sushi-making in an intimate setting.',
+    imageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c',
     reviews: [
       {
         id: '11',
@@ -139,6 +146,7 @@ export const restaurants: Restaurant[] = [
     name: 'Pizza Paradise',
     rating: 7,
     description: 'Neapolitan-style pizza made in traditional wood-fired ovens. Fresh ingredients and authentic Italian recipes.',
+    imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591',
     reviews: [
       {
         id: '13',
@@ -159,6 +167,7 @@ export const restaurants: Restaurant[] = [
     name: 'Thai Spice Kitchen',
     rating: 8,
     description: 'Authentic Thai cuisine with bold flavors and fresh ingredients. Our curries are made from scratch daily.',
+    imageUrl: 'https://images.unsplash.com/photo-1559314809-0d155014e29e',
     reviews: [
       {
         id: '15',
@@ -179,6 +188,7 @@ export const restaurants: Restaurant[] = [
     name: 'Veggie Delight',
     rating: 8,
     description: 'Plant-based cuisine that will change your mind about vegetarian food. Creative dishes made with seasonal ingredients.',
+    imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd',
     reviews: [
       {
         id: '17',
@@ -199,6 +209,7 @@ export const restaurants: Restaurant[] = [
     name: 'Taco Fiesta',
     rating: 7,
     description: 'Authentic Mexican street food with a modern twist. Our tacos are made with fresh tortillas and premium ingredients.',
+    imageUrl: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47',
     reviews: [
       {
         id: '19',
