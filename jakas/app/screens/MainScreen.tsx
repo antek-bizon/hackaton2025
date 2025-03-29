@@ -56,45 +56,50 @@ export default function MainScreen() {
     ]).start();
   }, []);
 
-  const titleColorInterpolation = scrollY.interpolate({
-    inputRange: [0, height * 0.2, height * 0.3],
-    outputRange: ['rgb(0, 0, 0)', 'rgb(0, 0, 0)', 'rgb(46, 204, 113)'],
-    extrapolate: 'clamp'
-  });
-
-  const titleScale = scrollY.interpolate({
-    inputRange: [0, height * 0.2, height * 0.3],
-    outputRange: [1, 1, 0.5],
-    extrapolate: 'clamp'
-  });
-
+  // Title starts in center (at height * 0.3) and moves to top when scrolling past threshold
   const titleTranslateY = scrollY.interpolate({
-    inputRange: [0, height * 0.2, height * 0.3],
-    outputRange: [0, 0, 0],
+    inputRange: [0, height * 0.2],
+    outputRange: [height * 0.3, 0], // Start in middle, end at top
     extrapolate: 'clamp'
   });
 
+  // Title color changes as it approaches the top
+  const titleColorInterpolation = scrollY.interpolate({
+    inputRange: [height * 0.15, height * 0.2],
+    outputRange: ['rgb(0, 0, 0)', 'rgb(46, 204, 113)'],
+    extrapolate: 'clamp'
+  });
+
+  // Title scales down as it approaches the top
+  const titleScale = scrollY.interpolate({
+    inputRange: [height * 0.15, height * 0.2],
+    outputRange: [1, 0.5],
+    extrapolate: 'clamp'
+  });
+
+  // More dramatic intro text animation
   const introTextOpacity = scrollY.interpolate({
-    inputRange: [height * 0.1, height * 0.2],
+    inputRange: [height * 0.22, height * 0.3],
     outputRange: [0, 1],
     extrapolate: 'clamp'
   });
 
   const introTextTranslateY = scrollY.interpolate({
-    inputRange: [height * 0.1, height * 0.2],
-    outputRange: [100, 0],
+    inputRange: [height * 0.22, height * 0.3],
+    outputRange: [100, 0], // More travel from bottom
     extrapolate: 'clamp'
   });
 
+  // More dramatic search bar animation
   const searchBarOpacity = scrollY.interpolate({
-    inputRange: [height * 0.15, height * 0.25],
+    inputRange: [height * 0.3, height * 0.38],
     outputRange: [0, 1],
     extrapolate: 'clamp'
   });
 
   const searchBarTranslateY = scrollY.interpolate({
-    inputRange: [height * 0.15, height * 0.25],
-    outputRange: [100, 0],
+    inputRange: [height * 0.3, height * 0.38],
+    outputRange: [100, 0], // More travel from bottom
     extrapolate: 'clamp'
   });
 
@@ -179,7 +184,7 @@ export default function MainScreen() {
           scrollEventThrottle={16}
         >
           <View style={styles.contentContainer}>
-            <View style={{ height: height * 0.3 }} />
+            <View style={{ height: height * 0.7 }} />
             
             <Animated.View 
               style={[
@@ -187,7 +192,6 @@ export default function MainScreen() {
                 {
                   opacity: introTextOpacity,
                   transform: [{ translateY: introTextTranslateY }],
-                  marginTop: height * 0.2
                 }
               ]}
             >
@@ -254,10 +258,10 @@ export default function MainScreen() {
             styles.titleContainer,
             {
               transform: [
-                { scale: titleScale }
+                { scale: titleScale },
+                { translateY: titleTranslateY }
               ],
               position: 'absolute',
-              top: 0,
               left: 0,
               right: 0,
               zIndex: 2,
