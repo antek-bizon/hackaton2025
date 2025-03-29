@@ -22,36 +22,41 @@ const RestaurantDetails = () => {
 
   useEffect(() => {
     // Animate image first
-    Animated.spring(imageAnimation, {
+    Animated.timing(imageAnimation, {
       toValue: 1,
+      duration: 1000,
       useNativeDriver: true,
     }).start();
 
-    // Animate stars sequentially
+    // Animate stars sequentially with longer delays
     starAnimations.forEach((animation, index) => {
       Animated.sequence([
-        Animated.delay(index * 100),
-        Animated.spring(animation, {
+        Animated.delay(index * 150), // Increased delay between stars
+        Animated.timing(animation, {
           toValue: 1,
+          duration: 1000,
           useNativeDriver: true,
         }),
       ]).start();
     });
 
-    // Animate sections sequentially
+    // Animate sections sequentially with longer delays
     Animated.sequence([
-      Animated.delay(500), // Wait for stars to animate
+      Animated.delay(1500), // Wait longer for stars to animate
       Animated.parallel([
-        Animated.spring(headerAnimation, {
+        Animated.timing(headerAnimation, {
           toValue: 1,
+          duration: 1000,
           useNativeDriver: true,
         }),
-        Animated.spring(descriptionAnimation, {
+        Animated.timing(descriptionAnimation, {
           toValue: 1,
+          duration: 1000,
           useNativeDriver: true,
         }),
-        Animated.spring(reviewsAnimation, {
+        Animated.timing(reviewsAnimation, {
           toValue: 1,
+          duration: 1000,
           useNativeDriver: true,
         }),
       ]),
