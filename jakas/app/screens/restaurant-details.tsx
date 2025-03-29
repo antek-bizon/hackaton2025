@@ -28,21 +28,9 @@ const RestaurantDetails = () => {
       useNativeDriver: true,
     }).start();
 
-    // Animate stars sequentially with longer delays
-    starAnimations.forEach((animation, index) => {
-      Animated.sequence([
-        Animated.delay(index * 150), // Increased delay between stars
-        Animated.timing(animation, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    });
-
-    // Animate sections sequentially with longer delays
+    // Animate sections first
     Animated.sequence([
-      Animated.delay(1500), // Wait longer for stars to animate
+      Animated.delay(1000), // Wait for image to finish
       Animated.parallel([
         Animated.timing(headerAnimation, {
           toValue: 1,
@@ -60,6 +48,20 @@ const RestaurantDetails = () => {
           useNativeDriver: true,
         }),
       ]),
+    ]).start();
+
+    // Animate stars last, after sections are fully visible
+    Animated.sequence([
+      Animated.delay(2000), // Wait for image (1s) + delay (1s) + sections (1s) - reduced by 1s
+      Animated.stagger(100, // Faster delay between stars
+        starAnimations.map(animation =>
+          Animated.timing(animation, {
+            toValue: 1,
+            duration: 500, // Faster star animation
+            useNativeDriver: true,
+          })
+        )
+      ),
     ]).start();
   }, []);
 
@@ -113,6 +115,7 @@ const RestaurantDetails = () => {
               style={[
                 styles.star,
                 {
+                  opacity: starAnimations[index],
                   transform: [
                     {
                       scale: starAnimations[index].interpolate({
