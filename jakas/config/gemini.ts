@@ -48,7 +48,7 @@ export const analyzeRestaurants = async () => {
        - avg_rating: The average of the original "rating" values.
        - avg_price: The average of the "averagePrice" values.
     
-    4. **Value for Money Calculation:**  
+    4. **Value for Money Calculatpythonion:**  
        For each restaurant, calculate the value for money score using the formula:
        
            compareFun = avg_f × avg_rating × (1 / avg_price)
@@ -63,6 +63,21 @@ export const analyzeRestaurants = async () => {
          - Any price-related praises or concerns mentioned in the reviews.
     
     Please provide your output in clear JSON format.
+    This JSON format should be in the following format:
+    {
+      "analysisResults": [
+        {
+          "restaurantName": "Restaurant Name",
+          "compareFun": 0.0,
+          "aiComment": "Comment" 
+          // This above comment should be in polish, and has to be  standarized according to the compareFun score.
+          // So if compareFun is above 0.8 say "Najesz sie niewielkim kosztem"
+          // If compareFun is between 0.5 and 0.8 say "Mogłoby być lepiej"
+          // If compareFun is below 0.5 say "Dużo wydasz i sie nie najesz"
+        }
+      ]
+    }
+    
     
     JSON Data:
     ${JSON.stringify(reviewData.reviews, null, 2)}
