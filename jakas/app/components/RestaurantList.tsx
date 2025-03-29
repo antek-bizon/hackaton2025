@@ -4,20 +4,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { restaurants, Restaurant, OpeningHours } from '../data/restaurants';
 
-type DayOfWeek = keyof OpeningHours;
-
 const checkIfOpen = (openingHours: OpeningHours): boolean => {
   const now = new Date();
-  const day = now.getDay();
   const currentTime = now.getHours() * 60 + now.getMinutes();
   
-  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const todayHours = openingHours[days[day]];
-  
-  if (!todayHours) return false;
-  
-  const [openHour, openMinute] = todayHours.open.split(':').map(Number);
-  const [closeHour, closeMinute] = todayHours.close.split(':').map(Number);
+  const [openHour, openMinute] = openingHours.open.split(':').map(Number);
+  const [closeHour, closeMinute] = openingHours.close.split(':').map(Number);
   
   const openTime = openHour * 60 + openMinute;
   const closeTime = closeHour * 60 + closeMinute;
@@ -106,8 +98,6 @@ export default function RestaurantList() {
 
   const renderRestaurantItem = ({ item }: { item: Restaurant }) => {
     const isOpen = checkIfOpen(item.openingHours);
-    const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const todayHours = item.openingHours[days[new Date().getDay()]];
     
     return (
       <Animated.View
@@ -174,18 +164,16 @@ export default function RestaurantList() {
                 </View>
               </View>
               <View style={styles.rightInfoContainer}>
-                {todayHours && (
-                  <View style={styles.hoursContainer}>
-                    <MaterialIcons 
-                      name="access-time" 
-                      size={14} 
-                      color={!isOpen ? '#999' : '#666'} 
-                    />
-                    <Text style={[styles.hoursText, !isOpen && styles.closedText]}>
-                      {todayHours.open} - {todayHours.close}
-                    </Text>
-                  </View>
-                )}
+                <View style={styles.hoursContainer}>
+                  <MaterialIcons 
+                    name="access-time" 
+                    size={14} 
+                    color={!isOpen ? '#999' : '#666'} 
+                  />
+                  <Text style={[styles.hoursText, !isOpen && styles.closedText]}>
+                    {item.openingHours.open} - {item.openingHours.close}
+                  </Text>
+                </View>
                 <View style={styles.statusContainer}>
                   <MaterialIcons 
                     name={isOpen ? 'check-circle' : 'cancel'} 
@@ -287,11 +275,11 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   cardContainer: {
-    marginBottom: 8,
+    marginBottom: 16,
   },
   restaurantCard: {
     borderRadius: 16,
-    overflow: 'hidden',
+    backgroundColor: '#fff',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: {
@@ -306,30 +294,29 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   cardContent: {
-    padding: 10,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    padding: 16,
   },
   restaurantHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   nameContainer: {
     flex: 1,
+    marginRight: 12,
   },
   restaurantName: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   cuisineTag: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
     alignSelf: 'flex-start',
   },
   cuisineText: {
@@ -342,7 +329,7 @@ const styles = StyleSheet.create({
   },
   ratingContainer: {
     flexDirection: 'row',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   priceContainer: {
     backgroundColor: 'rgba(0,0,0,0.1)',
@@ -356,26 +343,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   restaurantDescription: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666',
-    lineHeight: 16,
-    marginBottom: 6,
+    lineHeight: 20,
+    marginBottom: 12,
   },
   bottomContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginTop: 2,
   },
   leftInfoContainer: {
-    marginTop: 6,
+    flex: 1,
+    marginRight: 12,
   },
   infoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   infoText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#666',
     marginLeft: 4,
   },
@@ -385,7 +372,7 @@ const styles = StyleSheet.create({
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: 4,
   },
   closedRestaurantCard: {
     opacity: 0.8,
@@ -396,9 +383,13 @@ const styles = StyleSheet.create({
   hoursContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   hoursText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#666',
     marginLeft: 4,
   },

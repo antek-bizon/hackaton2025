@@ -4,20 +4,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { restaurants, OpeningHours } from '../data/restaurants';
 
-type DayOfWeek = keyof OpeningHours;
-
 const checkIfOpen = (openingHours: OpeningHours): boolean => {
   const now = new Date();
-  const day = now.getDay();
   const currentTime = now.getHours() * 60 + now.getMinutes();
   
-  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const todayHours = openingHours[days[day]];
-  
-  if (!todayHours) return false;
-  
-  const [openHour, openMinute] = todayHours.open.split(':').map(Number);
-  const [closeHour, closeMinute] = todayHours.close.split(':').map(Number);
+  const [openHour, openMinute] = openingHours.open.split(':').map(Number);
+  const [closeHour, closeMinute] = openingHours.close.split(':').map(Number);
   
   const openTime = openHour * 60 + openMinute;
   const closeTime = closeHour * 60 + closeMinute;
@@ -111,9 +103,7 @@ const RestaurantDetails = () => {
   }, [restaurant]);
 
   const getTodayHours = (openingHours: OpeningHours) => {
-    const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const todayHours = openingHours[days[new Date().getDay()]];
-    return todayHours ? `${todayHours.open} - ${todayHours.close}` : 'Closed';
+    return `${openingHours.open} - ${openingHours.close}`;
   };
 
   if (!restaurant) {

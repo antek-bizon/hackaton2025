@@ -1,13 +1,8 @@
 export type Rating = 1 | 2 | 3 | 4 | 5;
 
 export interface OpeningHours {
-  monday: { open: string; close: string } | null;
-  tuesday: { open: string; close: string } | null;
-  wednesday: { open: string; close: string } | null;
-  thursday: { open: string; close: string } | null;
-  friday: { open: string; close: string } | null;
-  saturday: { open: string; close: string } | null;
-  sunday: { open: string; close: string } | null;
+  open: string;
+  close: string;
 }
 
 export interface Restaurant {
@@ -29,46 +24,26 @@ export interface Restaurant {
 
 // Domyślne godziny otwarcia
 const defaultOpeningHours: OpeningHours = {
-  monday: { open: '10:00', close: '22:00' },
-  tuesday: { open: '10:00', close: '22:00' },
-  wednesday: { open: '10:00', close: '22:00' },
-  thursday: { open: '10:00', close: '22:00' },
-  friday: { open: '10:00', close: '22:00' },
-  saturday: { open: '11:00', close: '23:00' },
-  sunday: { open: '11:00', close: '23:00' }
+  open: '10:00',
+  close: '22:00'
 };
 
 // Godziny dla zamkniętej restauracji
 const closedRestaurantHours: OpeningHours = {
-  monday: null,
-  tuesday: null,
-  wednesday: null,
-  thursday: null,
-  friday: null,
-  saturday: null,
-  sunday: null
+  open: '00:00',
+  close: '00:00'
 };
 
 // Godziny dla restauracji otwartej tylko w weekendy
 const weekendOnlyHours: OpeningHours = {
-  monday: null,
-  tuesday: null,
-  wednesday: null,
-  thursday: null,
-  friday: { open: '11:00', close: '23:00' },
-  saturday: { open: '11:00', close: '23:00' },
-  sunday: { open: '11:00', close: '23:00' }
+  open: '11:00',
+  close: '23:00'
 };
 
 // Godziny dla restauracji otwartej tylko w nocy
 const nightHours: OpeningHours = {
-  monday: { open: '23:00', close: '05:00' },
-  tuesday: { open: '23:00', close: '05:00' },
-  wednesday: { open: '23:00', close: '05:00' },
-  thursday: { open: '23:00', close: '05:00' },
-  friday: { open: '23:00', close: '05:00' },
-  saturday: { open: '23:00', close: '05:00' },
-  sunday: { open: '23:00', close: '05:00' }
+  open: '23:00',
+  close: '05:00'
 };
 
 export const restaurants: Restaurant[] = [

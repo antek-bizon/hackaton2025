@@ -1,4 +1,3 @@
-
 const express = require('express');
 const sqlite = require('sqlite-async')
 const app = express()
@@ -113,44 +112,24 @@ app.listen(PORT, () => {
 
 async function addData(db) {
   const defaultOpeningHours = JSON.stringify({
-    monday: { open: '10:00', close: '22:00' },
-    tuesday: { open: '10:00', close: '22:00' },
-    wednesday: { open: '10:00', close: '22:00' },
-    thursday: { open: '10:00', close: '22:00' },
-    friday: { open: '10:00', close: '22:00' },
-    saturday: { open: '11:00', close: '23:00' },
-    sunday: { open: '11:00', close: '23:00' }
-  })
+    open: '10:00',
+    close: '22:00'
+  });
 
   const nightHours = JSON.stringify({
-    monday: { open: '23:00', close: '05:00' },
-    tuesday: { open: '23:00', close: '05:00' },
-    wednesday: { open: '23:00', close: '05:00' },
-    thursday: { open: '23:00', close: '05:00' },
-    friday: { open: '23:00', close: '05:00' },
-    saturday: { open: '23:00', close: '05:00' },
-    sunday: { open: '23:00', close: '05:00' }
-  })
+    open: '23:00',
+    close: '05:00'
+  });
 
   const closedRestaurantHours = JSON.stringify({
-    monday: null,
-    tuesday: null,
-    wednesday: null,
-    thursday: null,
-    friday: null,
-    saturday: null,
-    sunday: null
-  })
+    open: '00:00',
+    close: '00:00'
+  });
 
   const weekendOnlyHours = JSON.stringify({
-    monday: null,
-    tuesday: null,
-    wednesday: null,
-    thursday: null,
-    friday: { open: '11:00', close: '23:00' },
-    saturday: { open: '11:00', close: '23:00' },
-    sunday: { open: '11:00', close: '23:00' }
-  })
+    open: '11:00',
+    close: '23:00'
+  });
 
   const restaurants = [
     {
