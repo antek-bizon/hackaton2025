@@ -1,6 +1,6 @@
-import { View, TextInput, StyleSheet, Animated, Dimensions, Text, ScrollView, NativeSyntheticEvent, NativeScrollEvent, TouchableOpacity } from "react-native";
+import { View, TextInput, StyleSheet, Animated, Dimensions, Text, ScrollView, NativeSyntheticEvent, NativeScrollEvent, TouchableOpacity, Image, Platform } from "react-native";
 import { StatusBar } from 'expo-status-bar';
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import RestaurantList from '../components/RestaurantList';
 
 export default function MainScreen() {
@@ -10,14 +10,43 @@ export default function MainScreen() {
   const pattern2Position = useRef(new Animated.Value(0)).current;
   const pattern3Position = useRef(new Animated.Value(0)).current;
   
-  // Define snap points (as percentages of screen height)
-  const snapPoints = [0, 0.2, 0.3, 0.38, 0.6];
+  // Define snap points to align with animation endpoints
+  const snapPoints = [
+    0,                  // Initial position
+    height * 0.2,       // Title transformation complete
+    height * 0.3,       // Intro text fully visible
+    height * 0.38,      // Search bar fully visible
+    height * 0.6,       // First gallery item visible
+    height * 1.0,       // Second gallery item visible
+    height * 1.4        // Third gallery item visible
+  ];
   const [isScrolling, setIsScrolling] = useState(false);
   const [currentSnapIndex, setCurrentSnapIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
   // Add state for view control
   const [showRestaurantList, setShowRestaurantList] = useState(false);
+
+  // Add animation states to track
+  const titleAnimationComplete = useRef(false);
+  const introAnimationComplete = useRef(false);
+  const searchBarAnimationComplete = useRef(false);
+
+  // State to track if components have been revealed
+  const [introTextRevealed, setIntroTextRevealed] = useState(false);
+  const [searchBarRevealed, setSearchBarRevealed] = useState(false);
+
+  // Add state for letter hover effects
+  const [hoveredLetter, setHoveredLetter] = useState<number | null>(null);
+  
+  // Create animated values for each letter
+  const letterScales = [
+    useRef(new Animated.Value(1)).current,
+    useRef(new Animated.Value(1)).current,
+    useRef(new Animated.Value(1)).current,
+    useRef(new Animated.Value(1)).current,
+    useRef(new Animated.Value(1)).current
+  ];
 
   // Background patterns animation
   React.useEffect(() => {
@@ -88,7 +117,7 @@ export default function MainScreen() {
     extrapolate: 'clamp'
   });
 
-  // More dramatic intro text animation
+  // More dramatic intro text animation - stays visible
   const introTextOpacity = scrollY.interpolate({
     inputRange: [height * 0.22, height * 0.3],
     outputRange: [0, 1],
@@ -97,11 +126,11 @@ export default function MainScreen() {
 
   const introTextTranslateY = scrollY.interpolate({
     inputRange: [height * 0.22, height * 0.3],
-    outputRange: [100, 0], // More travel from bottom
+    outputRange: [100, 0],
     extrapolate: 'clamp'
   });
 
-  // More dramatic search bar animation
+  // More dramatic search bar animation - stays visible
   const searchBarOpacity = scrollY.interpolate({
     inputRange: [height * 0.3, height * 0.38],
     outputRange: [0, 1],
@@ -110,17 +139,41 @@ export default function MainScreen() {
 
   const searchBarTranslateY = scrollY.interpolate({
     inputRange: [height * 0.3, height * 0.38],
-    outputRange: [100, 0], // More travel from bottom
+    outputRange: [100, 0],
     extrapolate: 'clamp'
   });
 
-  // Handle scroll events
+  // Keep elements visible as we scroll further
+  const elementsVisibility = scrollY.interpolate({
+    inputRange: [height * 0.38, height * 2],
+    outputRange: [1, 1], // Stay at full opacity
+    extrapolate: 'clamp'
+  });
+  
+  // Enhanced handle scroll with animation tracking and persistence
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     { 
       useNativeDriver: false,
       listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const offsetY = event.nativeEvent.contentOffset.y;
+        
+        // Track animation states
+        if (offsetY >= height * 0.2 && !titleAnimationComplete.current) {
+          titleAnimationComplete.current = true;
+        } else if (offsetY < height * 0.2 && titleAnimationComplete.current) {
+          titleAnimationComplete.current = false;
+        }
+        
+        // Mark intro text as revealed once we pass the threshold
+        if (offsetY >= height * 0.3) {
+          setIntroTextRevealed(true);
+        }
+        
+        // Mark search bar as revealed once we pass the threshold
+        if (offsetY >= height * 0.38) {
+          setSearchBarRevealed(true);
+        }
         
         // Find nearest snap point when scrolling stops
         if (!isAnimating) {
@@ -136,26 +189,40 @@ export default function MainScreen() {
     setIsScrolling(true);
   };
 
-  // Handle when scrolling ends
+  // Handle when scrolling ends with improved snapping
   const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     setIsScrolling(false);
     
-    // Find closest snap point
-    const closestIndex = findClosestSnapPoint(offsetY);
+    // Find closest snap point with preference for completed animations
+    let targetIndex = findClosestSnapPoint(offsetY);
+    
+    // If we're in the middle of a transition, snap to completion
+    if (offsetY > height * 0.15 && offsetY < height * 0.2) {
+      targetIndex = 1; // Snap to title transformation complete
+    } else if (offsetY > height * 0.22 && offsetY < height * 0.3) {
+      targetIndex = 2; // Snap to intro text fully visible
+    } else if (offsetY > height * 0.3 && offsetY < height * 0.38) {
+      targetIndex = 3; // Snap to search bar fully visible
+    }
+    
+    // Check if we're already very close to a snap point to avoid unnecessary animations
+    if (Math.abs(offsetY - snapPoints[targetIndex]) < 10) {
+      return;
+    }
     
     // Snap to closest point
     setIsAnimating(true);
-    scrollToPosition(snapPoints[closestIndex] * height);
+    scrollToPosition(snapPoints[targetIndex]);
   };
   
   // Find the closest snap point index based on current scroll position
   const findClosestSnapPoint = useCallback((offsetY: number) => {
     let closestIndex = 0;
-    let minDistance = Math.abs(offsetY - snapPoints[0] * height);
+    let minDistance = Math.abs(offsetY - snapPoints[0]);
     
     for (let i = 1; i < snapPoints.length; i++) {
-      const distance = Math.abs(offsetY - snapPoints[i] * height);
+      const distance = Math.abs(offsetY - snapPoints[i]);
       if (distance < minDistance) {
         minDistance = distance;
         closestIndex = i;
@@ -163,7 +230,7 @@ export default function MainScreen() {
     }
     
     return closestIndex;
-  }, [height]);
+  }, [snapPoints]);
   
   // Scroll to specified position with animation
   const scrollToPosition = useCallback((position: number) => {
@@ -183,6 +250,50 @@ export default function MainScreen() {
   // Handle search button press
   const handleSearch = () => {
     setShowRestaurantList(true);
+  };
+
+  // Calculate opacity values considering revealed state
+  const calculatedIntroOpacity = useCallback(() => {
+    if (introTextRevealed) {
+      return 1; // Always visible once revealed
+    }
+    return introTextOpacity; // Use animation until revealed
+  }, [introTextOpacity, introTextRevealed]);
+  
+  const calculatedSearchOpacity = useCallback(() => {
+    if (searchBarRevealed) {
+      return 1; // Always visible once revealed
+    }
+    return searchBarOpacity; // Use animation until revealed
+  }, [searchBarOpacity, searchBarRevealed]);
+
+  // Handle letter hover effect
+  const handleLetterHover = (index: number, isHovering: boolean) => {
+    // Only respond to hover events on web platform
+    if (Platform.OS !== 'web') return;
+    
+    // Update hovered letter state
+    setHoveredLetter(isHovering ? index : null);
+    
+    // Animate the hovered letter scale
+    Animated.spring(letterScales[index], {
+      toValue: isHovering ? 1.3 : 1,
+      friction: 3,
+      tension: 40,
+      useNativeDriver: true
+    }).start();
+    
+    // Animate other letters to move away or back
+    letterScales.forEach((scale, i) => {
+      if (i !== index) {
+        Animated.spring(scale, {
+          toValue: isHovering ? 0.9 : 1,
+          friction: 3,
+          tension: 40,
+          useNativeDriver: true
+        }).start();
+      }
+    });
   };
 
   // Render main content view
@@ -279,8 +390,10 @@ export default function MainScreen() {
               style={[
                 styles.introSection,
                 {
-                  opacity: introTextOpacity,
-                  transform: [{ translateY: introTextTranslateY }],
+                  opacity: calculatedIntroOpacity(),
+                  transform: [{ 
+                    translateY: introTextRevealed ? 0 : introTextTranslateY 
+                  }],
                 }
               ]}
             >
@@ -289,29 +402,51 @@ export default function MainScreen() {
               </Text>
             </Animated.View>
 
-            <Animated.View 
-              style={[
-                styles.searchContainer,
-                { 
-                  opacity: searchBarOpacity,
-                  transform: [{ translateY: searchBarTranslateY }]
-                }
-              ]}
-            >
-              <View style={styles.searchInputGroup}>
-                <TextInput
-                  style={styles.searchBar}
-                  placeholder="Wpisz adres dostawy..."
-                  placeholderTextColor="#666"
+            <View style={styles.searchAndImageContainer}>
+              <Animated.View 
+                style={[
+                  styles.searchContainer,
+                  { 
+                    opacity: calculatedSearchOpacity(),
+                    transform: [{ 
+                      translateY: searchBarRevealed ? 0 : searchBarTranslateY 
+                    }]
+                  }
+                ]}
+              >
+                <View style={styles.searchInputGroup}>
+                  <TextInput
+                    style={styles.searchBar}
+                    placeholder="Wpisz adres dostawy..."
+                    placeholderTextColor="#666"
+                  />
+                  <TouchableOpacity 
+                    style={styles.searchButton}
+                    onPress={handleSearch}
+                  >
+                    <Text style={styles.searchButtonText}>Wyszukaj</Text>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+              
+              <Animated.View
+                style={[
+                  styles.imageContainer,
+                  {
+                    opacity: calculatedSearchOpacity(),
+                    transform: [
+                      { translateY: searchBarRevealed ? 0 : searchBarTranslateY }
+                    ]
+                  }
+                ]}
+              >
+                <Image 
+                  source={require('../../assets/images/pudzian.png')} 
+                  style={styles.pudzianImage}
+                  resizeMode="contain"
                 />
-                <TouchableOpacity 
-                  style={styles.searchButton}
-                  onPress={handleSearch}
-                >
-                  <Text style={styles.searchButtonText}>Wyszukaj</Text>
-                </TouchableOpacity>
-              </View>
-            </Animated.View>
+              </Animated.View>
+            </View>
 
             <View style={{ height: height * 0.2 }} />
 
@@ -349,7 +484,7 @@ export default function MainScreen() {
           </View>
         </Animated.ScrollView>
 
-        {/* Fixed header outside ScrollView */}
+        {/* Fixed header with interactive letters */}
         <Animated.View 
           style={[
             styles.titleContainer,
@@ -365,14 +500,82 @@ export default function MainScreen() {
             }
           ]}
         >
-          <Animated.Text style={[
-            styles.titleText,
-            { color: titleColorInterpolation }
-          ]}>Bool</Animated.Text>
-          <Text style={[
-            styles.titleText, 
-            { color: 'rgb(255, 255, 255)' }
-          ]}>k</Text>
+          <View style={styles.titleLettersContainer}>
+            {/* B */}
+            <Animated.Text 
+              style={[
+                styles.titleText,
+                { 
+                  color: titleColorInterpolation,
+                  transform: [{ scale: letterScales[0] }]
+                }
+              ]}
+              onMouseEnter={() => handleLetterHover(0, true)}
+              onMouseLeave={() => handleLetterHover(0, false)}
+            >
+              B
+            </Animated.Text>
+            
+            {/* o */}
+            <Animated.Text 
+              style={[
+                styles.titleText,
+                { 
+                  color: titleColorInterpolation,
+                  transform: [{ scale: letterScales[1] }]
+                }
+              ]}
+              onMouseEnter={() => handleLetterHover(1, true)}
+              onMouseLeave={() => handleLetterHover(1, false)}
+            >
+              o
+            </Animated.Text>
+            
+            {/* o */}
+            <Animated.Text 
+              style={[
+                styles.titleText,
+                { 
+                  color: titleColorInterpolation,
+                  transform: [{ scale: letterScales[2] }]
+                }
+              ]}
+              onMouseEnter={() => handleLetterHover(2, true)}
+              onMouseLeave={() => handleLetterHover(2, false)}
+            >
+              o
+            </Animated.Text>
+            
+            {/* l */}
+            <Animated.Text 
+              style={[
+                styles.titleText,
+                { 
+                  color: titleColorInterpolation,
+                  transform: [{ scale: letterScales[3] }]
+                }
+              ]}
+              onMouseEnter={() => handleLetterHover(3, true)}
+              onMouseLeave={() => handleLetterHover(3, false)}
+            >
+              l
+            </Animated.Text>
+            
+            {/* k */}
+            <Animated.Text 
+              style={[
+                styles.titleText,
+                { 
+                  color: 'rgb(255, 255, 255)',
+                  transform: [{ scale: letterScales[4] }]
+                }
+              ]}
+              onMouseEnter={() => handleLetterHover(4, true)}
+              onMouseLeave={() => handleLetterHover(4, false)}
+            >
+              k
+            </Animated.Text>
+          </View>
         </Animated.View>
       </View>
     </View>
@@ -427,14 +630,22 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     height: height * 0.15,
   },
+  titleLettersContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   titleText: {
     fontSize: 180,
     fontWeight: '900',
   },
   introSection: {
-    paddingHorizontal: 40,
+    paddingHorizontal: 0,
     marginBottom: 40,
     alignSelf: 'flex-start',
+    marginLeft: 100,
+    marginRight: 100,
+    width: '80%',
   },
   introText: {
     fontSize: 32,
@@ -443,6 +654,16 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     lineHeight: 42,
   },
+  searchAndImageContainer: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 60,
+    position: 'relative',
+    paddingLeft: 100,
+    paddingRight: 100,
+  },
   searchContainer: {
     width: '80%',
     maxWidth: 500,
@@ -450,8 +671,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 12,
     alignSelf: 'flex-start',
-    marginLeft: 40,
-    marginBottom: 60,
+    zIndex: 2,
+  },
+  imageContainer: {
+    width: 750,  // Even larger
+    height: 750, // Even larger
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+    right: -100, // Move it more to the right to overlap with content
+    bottom: -350, // Position it lower to overlap with gallery
+    zIndex: 1, // Between search bar and gallery content
   },
   searchInputGroup: {
     flexDirection: 'row',
@@ -481,8 +711,11 @@ const styles = StyleSheet.create({
   },
   gallerySection: {
     width: '100%',
-    paddingHorizontal: 20,
     paddingTop: 60,
+    paddingLeft: 100,
+    paddingRight: 100,
+    position: 'relative',
+    zIndex: 2,
   },
   galleryItem: {
     marginBottom: 80,
@@ -514,5 +747,9 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
     fontSize: 24,
     fontWeight: '500',
+  },
+  pudzianImage: {
+    width: '100%',
+    height: '100%',
   },
 }); 
