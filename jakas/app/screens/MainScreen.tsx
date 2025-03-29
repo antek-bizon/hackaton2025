@@ -934,7 +934,7 @@ export default function MainScreen() {
               ]}
             >
               <Text style={styles.introText}>
-                Discover the best way to fill you up thanks to our revolutionary Boolk meter
+                Najlepszy sposób by zaspokoić głód dzięki rewolucyjnemu Boolk Meter™
               </Text>
             </Animated.View>
 
@@ -988,29 +988,114 @@ export default function MainScreen() {
             <View style={{ height: height * 0.2 }} />
 
             <View style={styles.gallerySection}>
-              <View style={styles.featureCard}>
-                <IconSparkles />
-                <Text style={styles.featureTitle}>Smart Ordering</Text>
+              <Animated.View 
+                style={[
+                  styles.featureCard,
+                  {
+                    opacity: scrollY.interpolate({
+                      inputRange: [height * 0.6, height * 0.7],
+                      outputRange: [0, 1],
+                      extrapolate: 'clamp'
+                    }),
+                    transform: [
+                      { 
+                        translateY: scrollY.interpolate({
+                          inputRange: [height * 0.6, height * 0.7],
+                          outputRange: [50, 0],
+                          extrapolate: 'clamp'
+                        })
+                      },
+                      {
+                        scale: scrollY.interpolate({
+                          inputRange: [height * 0.6, height * 0.7],
+                          outputRange: [0.95, 1],
+                          extrapolate: 'clamp'
+                        })
+                      }
+                    ]
+                  }
+                ]}
+              >
+                <Image 
+                  source={{ uri: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000&auto=format&fit=crop" }} 
+                  style={styles.featureImageLarge}
+                  resizeMode="cover"
+                />
+                <Text style={styles.featureTitle}>Dlaczego Boolk?</Text>
                 <Text style={styles.featureDescription}>
-                  Our AI-powered system learns your preferences and suggests meals you'll love.
+                  Z racji coraz większych kosztów życia dla studentów w miastach Boolk dzięki technologi AI wyszukuje miejsca z najlepszym stosunkiem ilości jedzenia do ceny. Dzięki temu użytkownicy mogą spróbować nowych smaków, bez obaw o swój portfel.
                 </Text>
-              </View>
+              </Animated.View>
 
-              <View style={styles.featureCard}>
+              <Animated.View 
+                style={[
+                  styles.featureCard,
+                  {
+                    opacity: scrollY.interpolate({
+                      inputRange: [height * 0.8, height * 0.9],
+                      outputRange: [0, 1],
+                      extrapolate: 'clamp'
+                    }),
+                    transform: [
+                      { 
+                        translateY: scrollY.interpolate({
+                          inputRange: [height * 0.8, height * 0.9],
+                          outputRange: [50, 0],
+                          extrapolate: 'clamp'
+                        })
+                      },
+                      {
+                        scale: scrollY.interpolate({
+                          inputRange: [height * 0.8, height * 0.9],
+                          outputRange: [0.95, 1],
+                          extrapolate: 'clamp'
+                        })
+                      }
+                    ]
+                  }
+                ]}
+              >
                 <IconClock />
-                <Text style={styles.featureTitle}>Real-time Tracking</Text>
+                <Text style={styles.featureTitle}>Co to Boolk Meter</Text>
                 <Text style={styles.featureDescription}>
-                  Track your order in real-time with our advanced GPS system.
+                  Boolk używa gemini API do analizy opinii klientów by wydobyć najważniejsze informacje: Jak duże są porcje jedzenia.
                 </Text>
-              </View>
+              </Animated.View>
 
-              <View style={styles.featureCard}>
+              <Animated.View 
+                style={[
+                  styles.featureCard,
+                  {
+                    opacity: scrollY.interpolate({
+                      inputRange: [height * 1.0, height * 1.1],
+                      outputRange: [0, 1],
+                      extrapolate: 'clamp'
+                    }),
+                    transform: [
+                      { 
+                        translateY: scrollY.interpolate({
+                          inputRange: [height * 1.0, height * 1.1],
+                          outputRange: [50, 0],
+                          extrapolate: 'clamp'
+                        })
+                      },
+                      {
+                        scale: scrollY.interpolate({
+                          inputRange: [height * 1.0, height * 1.1],
+                          outputRange: [0.95, 1],
+                          extrapolate: 'clamp'
+                        })
+                      }
+                    ]
+                  }
+                ]}
+              >
                 <IconTarget />
-                <Text style={styles.featureTitle}>Boolk Meter</Text>
+                <Text style={styles.featureTitle}>Technologie</Text>
                 <Text style={styles.featureDescription}>
-                  Our unique satisfaction measurement system ensures you get exactly what you need.
+                  Our AI-powered system learns your preferences and suggests meals you'll love. Technology at your service.
                 </Text>
-              </View>
+              </Animated.View>
             </View>
           </View>
         </Animated.ScrollView>
@@ -1283,13 +1368,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   imageContainer: {
-    width: 1000,  
-    height: 1000, 
+    width: width * 0.3,  // Reduced from 0.6 to 0.3 (2x smaller)
+    height: width * 0.3, // Maintain aspect ratio
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',
-    right: -100, 
-    bottom: -350,
+    right: -width * 0.075, // Adjusted right position for smaller image
+    bottom: -height * 0.1, // Adjusted bottom position for smaller image
     zIndex: 1,
   },
   searchInputGroup: {
@@ -1367,5 +1452,16 @@ const styles = StyleSheet.create({
   pudzianImage: {
     width: '100%',
     height: '100%',
+  },
+  featureImage: {
+    width: 60,
+    height: 60,
+    marginBottom: 15,
+  },
+  featureImageLarge: {
+    width: '100%',
+    height: 200,
+    borderRadius: 16,
+    marginBottom: 20,
   },
 }); 
