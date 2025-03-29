@@ -28,6 +28,7 @@ const checkIfOpen = (openingHours: OpeningHours): boolean => {
 export default function RestaurantList() {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
+  const buttonScaleAnim = React.useRef(new Animated.Value(1)).current;
   const [localRestaurants, setLocalRestaurants] = useState<Restaurant[]>(restaurants);
 
   useEffect(() => {
@@ -69,6 +70,37 @@ export default function RestaurantList() {
       })
     ]).start(() => {
       router.push(`/screens/restaurant-details?id=${id}`);
+    });
+  };
+
+  const handleBackPress = () => {
+    Animated.sequence([
+      Animated.timing(buttonScaleAnim, {
+        toValue: 0.8,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonScaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Animacja wyjścia
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.95,
+          duration: 200,
+          useNativeDriver: true,
+        })
+      ]).start(() => {
+        router.replace('/');
+      });
     });
   };
 
@@ -174,14 +206,29 @@ export default function RestaurantList() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.background}>
+      <Animated.View 
+        style={[
+          styles.background,
+          {
+            opacity: fadeAnim,
+            transform: [{ scale: scaleAnim }]
+          }
+        ]}
+      >
         <View style={styles.headerContainer}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => router.back()}
+          <Animated.View
+            style={{
+              transform: [{ scale: buttonScaleAnim }]
+            }}
           >
-            <MaterialIcons name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={handleBackPress}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+          </Animated.View>
           <View style={styles.headerTextContainer}>
             <Text style={styles.title}>Best Restaurants</Text>
             <Text style={styles.subtitle}>Discover exceptional flavors</Text>
@@ -194,7 +241,7 @@ export default function RestaurantList() {
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -205,7 +252,7 @@ const styles = StyleSheet.create({
   },
   background: {
     flex: 1,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: 'rgb(46, 204, 113)',
   },
   headerContainer: {
     flexDirection: 'row',

@@ -33,8 +33,9 @@ const RestaurantDetails = () => {
   // Calculate dynamic dimensions
   const imageWidth = windowWidth * (isLargeScreen ? 0.7 : 0.85);
   const imageHeight = windowWidth * (isLargeScreen ? 0.15 : 0.2);
-  const leftMargin = (windowWidth - imageWidth) / 2 * 0.8;
-  const rightMargin = leftMargin * 0.9;
+  const leftMargin = (windowWidth - imageWidth) / 2;
+  const rightMargin = leftMargin;
+
   const imageMargin = { left: leftMargin, right: rightMargin };
 
   const { id } = useLocalSearchParams();
@@ -124,14 +125,15 @@ const RestaurantDetails = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+    >
       {!isSmallScreen && (
         <View style={[
           styles.imageContainer,
           {
             paddingTop: isLargeScreen ? 40 : 20,
-            paddingHorizontal: imageMargin.right,
-            paddingLeft: imageMargin.left,
             marginBottom: isLargeScreen ? 40 : 30,
           }
         ]}>
@@ -140,6 +142,7 @@ const RestaurantDetails = () => {
             style={[
               styles.restaurantImage,
               {
+                padding: 0,
                 width: imageWidth,
                 height: imageHeight,
                 opacity: imageAnimation,
@@ -363,9 +366,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  contentContainer: {
+    alignItems: 'center',
+  },
   imageContainer: {
     width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   restaurantImage: {
     borderRadius: 12,

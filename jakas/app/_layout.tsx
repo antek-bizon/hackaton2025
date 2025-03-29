@@ -26,7 +26,7 @@ export default function RootLayout() {
         options={{
           title: "Szczegóły Restauracji",
           headerStyle: {
-            backgroundColor: '#FF6B6B',
+            backgroundColor: 'rgb(46, 204, 113)',
           },
           headerTintColor: '#fff',
           headerTitleStyle: {
