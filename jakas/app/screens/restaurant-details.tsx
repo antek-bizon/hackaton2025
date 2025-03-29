@@ -81,9 +81,9 @@ const RestaurantDetails = () => {
       <View style={styles.reviewsContainer}>
         <Text style={styles.reviewsTitle}>Reviews</Text>
         {restaurant.reviews.map((review) => (
-          <View key={review.id} style={styles.reviewItem}>
+          <View key={review.date} style={styles.reviewItem}>
             <View style={styles.reviewHeader}>
-              <Text style={styles.reviewAuthor}>{review.author}</Text>
+              <Text style={styles.reviewDate}>{review.date}</Text>
               <View style={styles.reviewRating}>
                 {[...Array(10)].map((_, index) => (
                   <MaterialIcons
@@ -165,8 +165,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  reviewAuthor: {
-    fontSize: 16,
+  reviewDate: {
+    fontSize: 14,
+    color: '#666',
     fontWeight: '600',
   },
   reviewRating: {
