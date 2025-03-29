@@ -2,7 +2,28 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Animated, Image, Dimensions, useWindowDimensions } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { restaurants } from '../data/restaurants';
+import { restaurants, OpeningHours } from '../data/restaurants';
+
+type DayOfWeek = keyof OpeningHours;
+
+const checkIfOpen = (openingHours: OpeningHours): boolean => {
+  const now = new Date();
+  const day = now.getDay();
+  const currentTime = now.getHours() * 60 + now.getMinutes();
+  
+  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const todayHours = openingHours[days[day]];
+  
+  if (!todayHours) return false;
+  
+  const [openHour, openMinute] = todayHours.open.split(':').map(Number);
+  const [closeHour, closeMinute] = todayHours.close.split(':').map(Number);
+  
+  const openTime = openHour * 60 + openMinute;
+  const closeTime = closeHour * 60 + closeMinute;
+  
+  return currentTime >= openTime && currentTime <= closeTime;
+};
 
 const { width: screenWidth } = Dimensions.get('window');
 const imageWidth = screenWidth * 0.85; // 85% of screen width
@@ -16,11 +37,13 @@ const RestaurantDetails = () => {
   const isSmallScreen = windowWidth < 768; // Breakpoint for tablets
   const { id } = useLocalSearchParams();
   const restaurant = restaurants.find(r => r.id === id);
-  const starAnimations = useRef([...Array(10)].map(() => new Animated.Value(0))).current;
+  const starAnimations = useRef([...Array(5)].map(() => new Animated.Value(0))).current;
   const headerAnimation = useRef(new Animated.Value(0)).current;
   const descriptionAnimation = useRef(new Animated.Value(0)).current;
   const reviewsAnimation = useRef(new Animated.Value(0)).current;
   const imageAnimation = useRef(new Animated.Value(0)).current;
+  const [isOpen, setIsOpen] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     // Animate image first
@@ -65,7 +88,24 @@ const RestaurantDetails = () => {
         )
       ),
     ]).start();
-  }, []);
+
+    // Update time every minute
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    // Check if restaurant is open using the proper opening hours
+    const checkOpenStatus = () => {
+      if (!restaurant) return;
+      const isOpen = checkIfOpen(restaurant.openingHours);
+      setIsOpen(isOpen);
+    };
+
+    checkOpenStatus();
+    return () => {
+      clearInterval(timer);
+    };
+  }, [restaurant]);
 
   if (!restaurant) {
     return (
@@ -137,6 +177,8 @@ const RestaurantDetails = () => {
             backgroundColor: isSmallScreen ? 'rgba(0, 0, 0, 0.5)' : 'transparent',
             padding: isSmallScreen ? 20 : 0,
             borderRadius: isSmallScreen ? 12 : 0,
+            width: '100%',
+            paddingBottom: 20,
           },
         ]}>
           <Text style={[
@@ -144,7 +186,7 @@ const RestaurantDetails = () => {
             { color: isSmallScreen ? '#fff' : '#000' }
           ]}>{restaurant.name}</Text>
           <View style={styles.ratingContainer}>
-            {[...Array(10)].map((_, index) => (
+            {[...Array(5)].map((_, index) => (
               <Animated.View
                 key={index}
                 style={[
@@ -169,6 +211,21 @@ const RestaurantDetails = () => {
                 />
               </Animated.View>
             ))}
+          </View>
+          <View style={styles.hoursContainer}>
+            <MaterialIcons
+              name="access-time"
+              size={20}
+              color={isOpen ? (isSmallScreen ? '#fff' : '#000') : '#ff4444'}
+            />
+            <Text style={[
+              styles.hoursText,
+              {
+                color: isOpen ? (isSmallScreen ? '#fff' : '#000') : '#ff4444',
+              }
+            ]}>
+              {isOpen ? 'Open' : 'Closed'}
+            </Text>
           </View>
         </View>
       </Animated.View>
@@ -261,6 +318,8 @@ const styles = StyleSheet.create({
   headerContent: {
     zIndex: 2,
     alignItems: 'center',
+    padding: 20,
+    paddingBottom: 20,
   },
   restaurantName: {
     fontSize: 28,
@@ -333,6 +392,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     color: '#666',
+  },
+  hoursContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 10,
+  },
+  hoursText: {
+    fontSize: 16,
+    marginLeft: 8,
+    fontWeight: '500',
   },
 });
 
