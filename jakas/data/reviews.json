@@ -1,0 +1,74 @@
+{
+  "reviews": [
+    {
+      "restaurantName": "Grill House Supreme",
+      "restaurantLocation": "10 Oak Ave, Foodtown",
+      "textReviews": "Porcje ogromne, ledwo zmieściłem wszystko! Smacznie i bardzo sycąco.",
+      "averagePrice": 45,
+      "rating": 4.5
+    },
+    {
+      "restaurantName": "Grill House Supreme",
+      "restaurantLocation": "10 Oak Ave, Foodtown",
+      "textReviews": "Duże, porządne porcje – idealne po długim dniu. Na pewno wrócę!",
+      "averagePrice": 45,
+      "rating": 4.5
+    },
+    {
+      "restaurantName": "Grill House Supreme",
+      "restaurantLocation": "10 Oak Ave, Foodtown",
+      "textReviews": "Burgery wielkości talerza, a dodatków pełno. Super stosunek jakości do ceny.",
+      "averagePrice": 45,
+      "rating": 4.5
+    },
+    {
+      "restaurantName": "Grill House Supreme",
+      "restaurantLocation": "10 Oak Ave, Foodtown",
+      "textReviews": "Jedzenie pyszne, ale to porcje robią największe wrażenie – wystarczyło na dwie osoby!",
+      "averagePrice": 45,
+      "rating": 4.5
+    },
+    {
+      "restaurantName": "Grill House Supreme",
+      "restaurantLocation": "10 Oak Ave, Foodtown",
+      "textReviews": "Nie da się wyjść stąd głodnym – solidne porcje i świetny smak.",
+      "averagePrice": 45,
+      "rating": 4.5
+    },
+    {
+      "restaurantName": "Tiny Tastes Bistro",
+      "restaurantLocation": "88 Willow Rd, Flavortown",
+      "textReviews": "Smaczne, ale porcje mikroskopijne. Po kolacji musiałem iść po kebaba.",
+      "averagePrice": 30,
+      "rating": 2.5
+    },
+    {
+      "restaurantName": "Tiny Tastes Bistro",
+      "restaurantLocation": "88 Willow Rd, Flavortown",
+      "textReviews": "Klimatyczne miejsce, ale dania zdecydowanie za małe jak na tę cenę.",
+      "averagePrice": 30,
+      "rating": 2.5
+    },
+    {
+      "restaurantName": "Tiny Tastes Bistro",
+      "restaurantLocation": "88 Willow Rd, Flavortown",
+      "textReviews": "Wszystko ładnie podane, tylko czemu tak mało? Czułem się jak po przystawce.",
+      "averagePrice": 30,
+      "rating": 2.5
+    },
+    {
+      "restaurantName": "Tiny Tastes Bistro",
+      "restaurantLocation": "88 Willow Rd, Flavortown",
+      "textReviews": "Dania dobre, ale porcja makaronu była dosłownie na trzy widelce.",
+      "averagePrice": 30,
+      "rating": 2.5
+    },
+    {
+      "restaurantName": "Tiny Tastes Bistro",
+      "restaurantLocation": "88 Willow Rd, Flavortown",
+      "textReviews": "Fajne smaki, lecz wielkość porcji rozczarowuje – bardziej degustacja niż obiad.",
+      "averagePrice": 30,
+      "rating": 2.5
+    }
+  ]
+}
