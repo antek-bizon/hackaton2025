@@ -1,22 +1,32 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GEMINI_API_KEY } from '@env';
 import reviewData from '../data/reviews.json';
+import { db } from './firebase';
+import { collection, addDoc, setDoc, doc } from 'firebase/firestore';
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-// Function to trigger a download of JSON data with a fixed filename
-const downloadToGeminiParsed = (data: any) => {
-  const jsonStr = JSON.stringify(data, null, 2);
-  const blob = new Blob([jsonStr], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'geminiParsed.json'; // Fixed filename
-  a.click();
-  
-  URL.revokeObjectURL(url);
-  console.log('Analysis saved to geminiParsed.json');
+// Function to save data to Firestore
+const saveToFirestore = async (data: any) => {
+  try {
+    // First, try to update the existing 'latest' document
+    await setDoc(doc(db, "restaurant-analysis", "latest"), {
+      timestamp: new Date(),
+      data: data
+    });
+    
+    // Then, also add a new document with timestamp for history
+    await addDoc(collection(db, "restaurant-analysis-history"), {
+      timestamp: new Date(),
+      data: data
+    });
+    
+    console.log("Analysis saved to Firestore");
+    return true;
+  } catch (error) {
+    console.error("Error saving to Firestore:", error);
+    return false;
+  }
 };
 
 export const analyzeRestaurants = async () => {
@@ -48,7 +58,7 @@ export const analyzeRestaurants = async () => {
        - avg_rating: The average of the original "rating" values.
        - avg_price: The average of the "averagePrice" values.
     
-    4. **Value for Money Calculatpythonion:**  
+    4. **Value for Money Calculation:**  
        For each restaurant, calculate the value for money score using the formula:
        
            compareFun = avg_f × avg_rating × (1 / avg_price)
@@ -56,28 +66,23 @@ export const analyzeRestaurants = async () => {
        This score represents the balance between portion size, overall quality (original rating), and cost.
     
     5. **Output:**  
-       Provide:
-         - Which restaurant offers the best value for money (highest compareFun score).
-         - A ranking of restaurants based on the compareFun score.
-         - Specific details about portion sizes mentioned in the reviews.
-         - Any price-related praises or concerns mentioned in the reviews.
+       Provide your analysis in the following JSON format only, without any markdown, comments, or additional text:
+       {
+         "analysisResults": [
+           {
+             "restaurantName": "Restaurant Name",
+             "compareFun": 0.0,
+             "aiComment": "Comment" 
+           }
+         ]
+       }
+       
+       The aiComment should be in Polish and standardized according to the compareFun score:
+       - If compareFun is above 0.8, say "Najesz sie niewielkim kosztem"
+       - If compareFun is between 0.5 and 0.8, say "Mogłoby być lepiej"
+       - If compareFun is below 0.5, say "Dużo wydasz i sie nie najesz"
     
-    Please provide your output in clear JSON format.
-    This JSON format should be in the following format:
-    {
-      "analysisResults": [
-        {
-          "restaurantName": "Restaurant Name",
-          "compareFun": 0.0,
-          "aiComment": "Comment" 
-          // This above comment should be in polish, and has to be  standarized according to the compareFun score.
-          // So if compareFun is above 0.8 say "Najesz sie niewielkim kosztem"
-          // If compareFun is between 0.5 and 0.8 say "Mogłoby być lepiej"
-          // If compareFun is below 0.5 say "Dużo wydasz i sie nie najesz"
-        }
-      ]
-    }
-    
+    IMPORTANT: Return ONLY the JSON object, no markdown formatting (no \`\`\`json or \`\`\`python), no explanations before or after.
     
     JSON Data:
     ${JSON.stringify(reviewData.reviews, null, 2)}
@@ -88,10 +93,19 @@ export const analyzeRestaurants = async () => {
         const response = await result.response;
         const outputText = await response.text();
 
-        // Remove markdown formatting (```json and ```)
-        const cleanOutput = outputText
-            .replace(/^```json\s*/m, '')  // remove starting ```json
-            .replace(/```$/m, '');         // remove trailing ```
+        // Improved cleaning: Remove any markdown formatting regardless of language
+        let cleanOutput = outputText
+            .replace(/^```(?:json|python|javascript)?\s*/m, '')  // remove starting markdown
+            .replace(/```$/m, '')                             // remove trailing markdown
+            .trim();                                          // trim whitespace
+        
+        // If the output still starts with a non-JSON character, find the first '{' and start from there
+        if (cleanOutput.charAt(0) !== '{') {
+            const jsonStart = cleanOutput.indexOf('{');
+            if (jsonStart >= 0) {
+                cleanOutput = cleanOutput.substring(jsonStart);
+            }
+        }
         
         // Parse the cleaned output to ensure it's valid JSON
         const parsedOutput = JSON.parse(cleanOutput);
@@ -99,8 +113,8 @@ export const analyzeRestaurants = async () => {
         // Store in localStorage
         localStorage.setItem('geminiData', JSON.stringify(parsedOutput));
         
-        // Download to geminiParsed.json
-        downloadToGeminiParsed(parsedOutput);
+        // Save to Firestore
+        await saveToFirestore(parsedOutput);
         
         // Return a readable version of the data
         return JSON.stringify(parsedOutput, null, 2);
