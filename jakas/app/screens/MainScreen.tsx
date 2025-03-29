@@ -2,6 +2,7 @@ import { View, TextInput, StyleSheet, Animated, Dimensions, Text, ScrollView, Na
 import { StatusBar } from 'expo-status-bar';
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import RestaurantList from '../components/RestaurantList';
+import { router } from 'expo-router';
 
 // Define icon components since we don't have Lucide-React
 const IconSparkles = () => (
@@ -59,9 +60,6 @@ export default function MainScreen() {
   const [isScrolling, setIsScrolling] = useState(false);
   const [currentSnapIndex, setCurrentSnapIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-
-  // Add state for view control
-  const [showRestaurantList, setShowRestaurantList] = useState(false);
 
   // Add animation values
   const introTextAnimatedY = useRef(new Animated.Value(50)).current;
@@ -460,7 +458,7 @@ export default function MainScreen() {
 
   // Handle search button press
   const handleSearch = () => {
-    setShowRestaurantList(true);
+    router.push('/restaurant-list');
   };
 
   // Calculate opacity values considering revealed state
@@ -536,10 +534,6 @@ export default function MainScreen() {
   }, []);
 
   // Render main content view
-  if (showRestaurantList) {
-    return <RestaurantList onBack={() => setShowRestaurantList(false)} />;
-  }
-
   return (
     <View style={styles.mainContainer}>
       <StatusBar style="dark" hidden={true} />

@@ -1,29 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Animated, Image, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Animated, Image, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
-import { restaurants, OpeningHours } from '../data/restaurants';
+import { useLocalSearchParams, router } from 'expo-router';
+import { db } from '../../config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
-type DayOfWeek = keyof OpeningHours;
+// Restaurant data structure from Firestore
+interface RestaurantAnalysis {
+  restaurantName: string;
+  compareFun: number;
+  aiComment: string;
+  id?: string;
+}
 
-const checkIfOpen = (openingHours: OpeningHours): boolean => {
-  const now = new Date();
-  const day = now.getDay();
-  const currentTime = now.getHours() * 60 + now.getMinutes();
-  
-  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const todayHours = openingHours[days[day]];
-  
-  if (!todayHours) return false;
-  
-  const [openHour, openMinute] = todayHours.open.split(':').map(Number);
-  const [closeHour, closeMinute] = todayHours.close.split(':').map(Number);
-  
-  const openTime = openHour * 60 + openMinute;
-  const closeTime = closeHour * 60 + closeMinute;
-  
-  return currentTime >= openTime && currentTime <= closeTime;
-};
+interface FirestoreData {
+  timestamp: any;
+  data: {
+    analysisResults: RestaurantAnalysis[];
+  };
+}
 
 const RestaurantDetails = () => {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -39,16 +34,54 @@ const RestaurantDetails = () => {
   const imageMargin = { left: leftMargin, right: rightMargin };
 
   const { id } = useLocalSearchParams();
-  const restaurant = restaurants.find(r => r.id === id);
+  const [restaurant, setRestaurant] = useState<RestaurantAnalysis | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Animation refs
   const starAnimations = useRef([...Array(5)].map(() => new Animated.Value(0))).current;
   const headerAnimation = useRef(new Animated.Value(0)).current;
   const descriptionAnimation = useRef(new Animated.Value(0)).current;
   const reviewsAnimation = useRef(new Animated.Value(0)).current;
   const imageAnimation = useRef(new Animated.Value(0)).current;
-  const [isOpen, setIsOpen] = useState(true);
-  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
+    const fetchRestaurantDetails = async () => {
+      try {
+        setLoading(true);
+        // Get the latest analysis from Firestore
+        const latestDocRef = doc(db, "restaurant-analysis", "latest");
+        const latestDocSnap = await getDoc(latestDocRef);
+        
+        if (latestDocSnap.exists()) {
+          const data = latestDocSnap.data() as FirestoreData;
+          // Extract the restaurant ID from the URL parameter (format: restaurant-X)
+          const idParts = typeof id === 'string' ? id.split('-') : [];
+          const index = idParts.length > 1 ? parseInt(idParts[1]) : -1;
+          
+          if (index >= 0 && index < data.data.analysisResults.length) {
+            // Found the restaurant
+            setRestaurant(data.data.analysisResults[index]);
+          } else {
+            setError("Restaurant not found");
+          }
+        } else {
+          setError("No restaurant data available");
+        }
+      } catch (err) {
+        console.error("Error fetching restaurant details:", err);
+        setError("Failed to load restaurant details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRestaurantDetails();
+  }, [id]);
+
+  useEffect(() => {
+    if (!restaurant || loading) return;
+    
     // Animate image first
     Animated.timing(imageAnimation, {
       toValue: 1,
@@ -91,44 +124,49 @@ const RestaurantDetails = () => {
         )
       ),
     ]).start();
+  }, [restaurant, loading]);
 
-    // Update time every minute
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
-
-    // Check if restaurant is open using the proper opening hours
-    const checkOpenStatus = () => {
-      if (!restaurant) return;
-      const isOpen = checkIfOpen(restaurant.openingHours);
-      setIsOpen(isOpen);
-    };
-
-    checkOpenStatus();
-    return () => {
-      clearInterval(timer);
-    };
-  }, [restaurant]);
-
-  const getTodayHours = (openingHours: OpeningHours) => {
-    const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const todayHours = openingHours[days[new Date().getDay()]];
-    return todayHours ? `${todayHours.open} - ${todayHours.close}` : 'Closed';
+  // Helper function to handle back navigation
+  const handleBack = () => {
+    router.back();
   };
 
-  if (!restaurant) {
+  if (loading) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Restaurant not found</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2ecc71" />
+        <Text style={styles.loadingText}>Loading restaurant details...</Text>
       </View>
     );
   }
+
+  if (error || !restaurant) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>{error || "Restaurant not found"}</Text>
+      </View>
+    );
+  }
+
+  // Generate a random rating for visualization (since we don't have this in Firestore data)
+  // In a real app, you would have actual ratings
+  const rating = Math.min(5, Math.max(1, Math.round(restaurant.compareFun * 5 / 1.5)));
 
   return (
     <ScrollView 
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
     >
+      <View style={styles.header}>
+        <MaterialIcons 
+          name="arrow-back" 
+          size={24} 
+          color="#fff" 
+          style={styles.backButton}
+          onPress={handleBack}
+        />
+      </View>
+      
       {!isSmallScreen && (
         <View style={[
           styles.imageContainer,
@@ -138,7 +176,7 @@ const RestaurantDetails = () => {
           }
         ]}>
           <Animated.Image
-            source={{ uri: restaurant.imageUrl }}
+            source={{ uri: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000&auto=format&fit=crop" }}
             style={[
               styles.restaurantImage,
               {
@@ -161,7 +199,7 @@ const RestaurantDetails = () => {
         </View>
       )}
       <Animated.View style={[
-        styles.header,
+        styles.detailsCard,
         {
           width: imageWidth,
           marginHorizontal: imageMargin.right,
@@ -173,7 +211,7 @@ const RestaurantDetails = () => {
               outputRange: [20, 0],
             }),
           }],
-          backgroundColor: isSmallScreen ? 'transparent' : '#f8f8f8',
+          backgroundColor: isSmallScreen ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.05)',
           paddingTop: isSmallScreen ? 0 : (isLargeScreen ? 30 : 20),
           borderRadius: isLargeScreen ? 16 : 12,
           marginBottom: isLargeScreen ? 40 : 30,
@@ -181,7 +219,7 @@ const RestaurantDetails = () => {
       ]}>
         {isSmallScreen && (
           <Animated.Image
-            source={{ uri: restaurant.imageUrl }}
+            source={{ uri: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000&auto=format&fit=crop" }}
             style={[
               styles.headerBackgroundImage,
               {
@@ -210,10 +248,11 @@ const RestaurantDetails = () => {
           <Text style={[
             styles.restaurantName,
             { 
-              color: isSmallScreen ? '#fff' : '#000',
+              color: '#fff',
               fontSize: isLargeScreen ? 36 : 28,
             }
-          ]}>{restaurant.name}</Text>
+          ]}>{restaurant.restaurantName}</Text>
+          
           <View style={styles.ratingContainer}>
             {[...Array(5)].map((_, index) => (
               <Animated.View
@@ -234,46 +273,24 @@ const RestaurantDetails = () => {
                 ]}
               >
                 <MaterialIcons
-                  name={index < restaurant.rating ? 'star' : 'star-border'}
+                  name={index < rating ? 'star' : 'star-border'}
                   size={isLargeScreen ? 32 : 24}
                   color="#FFD700"
                 />
               </Animated.View>
             ))}
           </View>
-          <View style={[
-            styles.hoursContainer,
-            {
-              marginTop: isLargeScreen ? 15 : 10,
-              paddingHorizontal: isLargeScreen ? 16 : 12,
-              paddingVertical: isLargeScreen ? 8 : 6,
-            }
-          ]}>
-            <MaterialIcons
-              name="access-time"
-              size={isLargeScreen ? 24 : 20}
-              color={isOpen ? (isSmallScreen ? '#fff' : '#000') : '#ff4444'}
-            />
-            <Text style={[
-              styles.hoursText,
-              {
-                color: isOpen ? (isSmallScreen ? '#fff' : '#000') : '#ff4444',
-                fontSize: isLargeScreen ? 18 : 16,
-                marginLeft: isLargeScreen ? 12 : 8,
-              }
-            ]}>
-              {isOpen ? 'Open' : 'Closed'} • {getTodayHours(restaurant.openingHours)}
-            </Text>
+          
+          <View style={styles.scoreContainer}>
+            <Text style={styles.scoreLabel}>Boolk Meter Score:</Text>
+            <Text style={styles.scoreValue}>{restaurant.compareFun.toFixed(2)}</Text>
           </View>
         </View>
       </Animated.View>
 
       <Animated.View style={[
-        styles.descriptionContainer,
+        styles.section,
         {
-          width: imageWidth,
-          marginHorizontal: imageMargin.right,
-          marginLeft: imageMargin.left,
           opacity: descriptionAnimation,
           transform: [{
             translateY: descriptionAnimation.interpolate({
@@ -281,26 +298,21 @@ const RestaurantDetails = () => {
               outputRange: [20, 0],
             }),
           }],
-          padding: isLargeScreen ? 30 : 20,
-          borderRadius: isLargeScreen ? 16 : 12,
-          marginBottom: isLargeScreen ? 40 : 30,
-        },
-      ]}>
-        <Text style={[
-          styles.description,
-          {
-            fontSize: isLargeScreen ? 18 : 16,
-            lineHeight: isLargeScreen ? 28 : 24,
-          }
-        ]}>{restaurant.description}</Text>
-      </Animated.View>
-
-      <Animated.View style={[
-        styles.reviewsContainer,
-        {
           width: imageWidth,
           marginHorizontal: imageMargin.right,
           marginLeft: imageMargin.left,
+        }
+      ]}>
+        <View style={styles.sectionHeader}>
+          <MaterialIcons name="description" size={24} color="#2ecc71" />
+          <Text style={styles.sectionTitle}>AI Analysis</Text>
+        </View>
+        <Text style={styles.description}>{restaurant.aiComment}</Text>
+      </Animated.View>
+
+      <Animated.View style={[
+        styles.section,
+        {
           opacity: reviewsAnimation,
           transform: [{
             translateY: reviewsAnimation.interpolate({
@@ -308,54 +320,27 @@ const RestaurantDetails = () => {
               outputRange: [20, 0],
             }),
           }],
-          padding: isLargeScreen ? 30 : 20,
-          borderRadius: isLargeScreen ? 16 : 12,
-          marginBottom: isLargeScreen ? 40 : 30,
-        },
+          width: imageWidth,
+          marginHorizontal: imageMargin.right,
+          marginLeft: imageMargin.left,
+        }
       ]}>
-        <Text style={[
-          styles.reviewsTitle,
-          {
-            fontSize: isLargeScreen ? 24 : 20,
-            marginBottom: isLargeScreen ? 20 : 15,
-          }
-        ]}>Reviews</Text>
-        {restaurant.reviews.map((review) => (
-          <View key={review.date} style={[
-            styles.reviewItem,
-            {
-              padding: isLargeScreen ? 20 : 15,
-              borderRadius: isLargeScreen ? 12 : 8,
-              marginBottom: isLargeScreen ? 15 : 10,
-            }
-          ]}>
-            <View style={styles.reviewHeader}>
-              <Text style={[
-                styles.reviewDate,
-                {
-                  fontSize: isLargeScreen ? 16 : 14,
-                }
-              ]}>{review.date}</Text>
-              <View style={styles.reviewRating}>
-                {[...Array(5)].map((_, index) => (
-                  <MaterialIcons
-                    key={index}
-                    name={index < review.rating ? 'star' : 'star-border'}
-                    size={isLargeScreen ? 20 : 16}
-                    color="#FFD700"
-                  />
-                ))}
-              </View>
-            </View>
-            <Text style={[
-              styles.reviewComment,
-              {
-                fontSize: isLargeScreen ? 16 : 14,
-                lineHeight: isLargeScreen ? 24 : 20,
-              }
-            ]}>{review.comment}</Text>
-          </View>
-        ))}
+        <View style={styles.sectionHeader}>
+          <MaterialIcons name="info" size={24} color="#2ecc71" />
+          <Text style={styles.sectionTitle}>Restaurant Information</Text>
+        </View>
+        <View style={styles.infoItem}>
+          <MaterialIcons name="local-dining" size={20} color="#2ecc71" />
+          <Text style={styles.infoText}>Value for money: Excellent</Text>
+        </View>
+        <View style={styles.infoItem}>
+          <MaterialIcons name="people" size={20} color="#2ecc71" />
+          <Text style={styles.infoText}>Popular with students</Text>
+        </View>
+        <View style={styles.infoItem}>
+          <MaterialIcons name="local-offer" size={20} color="#2ecc71" />
+          <Text style={styles.infoText}>Affordable prices</Text>
+        </View>
       </Animated.View>
     </ScrollView>
   );
@@ -364,10 +349,23 @@ const RestaurantDetails = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#1a1a1a',
   },
   contentContainer: {
+    paddingBottom: 40,
+  },
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
+    padding: 16,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  backButton: {
+    padding: 8,
   },
   imageContainer: {
     width: '100%',
@@ -375,9 +373,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   restaurantImage: {
-    borderRadius: 12,
+    borderRadius: 16,
   },
-  header: {
+  detailsCard: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
     overflow: 'hidden',
   },
   headerBackgroundImage: {
@@ -386,69 +386,92 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 1,
+    width: '100%',
+    height: '100%',
   },
   headerContent: {
-    zIndex: 2,
-    alignItems: 'center',
+    zIndex: 1,
   },
   restaurantName: {
     fontWeight: 'bold',
     marginBottom: 10,
-    textAlign: 'center',
   },
   ratingContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    marginBottom: 15,
   },
   star: {
-    marginRight: 4,
+    marginRight: 5,
   },
-  descriptionContainer: {
-    backgroundColor: '#f8f8f8',
+  scoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  scoreLabel: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginRight: 8,
+    fontSize: 16,
+  },
+  scoreValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2ecc71',
+  },
+  section: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 10,
   },
   description: {
-    color: '#333',
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 24,
   },
-  reviewsContainer: {
-    backgroundColor: '#f8f8f8',
-  },
-  reviewsTitle: {
-    fontWeight: 'bold',
-  },
-  reviewItem: {
-    backgroundColor: '#fff',
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  reviewDate: {
-    color: '#666',
-    fontWeight: '600',
-  },
-  reviewRating: {
-    flexDirection: 'row',
-  },
-  reviewComment: {
-    color: '#666',
-  },
-  hoursContainer: {
+  infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
+    marginBottom: 10,
   },
-  hoursText: {
-    fontWeight: '500',
+  infoText: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginLeft: 10,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+  },
+  loadingText: {
+    marginTop: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 16,
   },
   errorText: {
+    color: '#e74c3c',
     fontSize: 18,
     textAlign: 'center',
-    marginTop: 20,
-    color: '#666',
+    padding: 20,
   },
 });
 

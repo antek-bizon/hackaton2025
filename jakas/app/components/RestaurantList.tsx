@@ -1,61 +1,77 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Animated, Pressable } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Animated, Pressable } from 'react-native';
+import { db } from '../../config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { analyzeRestaurants } from '../../config/gemini';
 import { router } from 'expo-router';
-import { restaurants, Restaurant, OpeningHours } from '../data/restaurants';
 
-type DayOfWeek = keyof OpeningHours;
+// Define the restaurant data structure
+interface RestaurantAnalysis {
+  restaurantName: string;
+  compareFun: number;
+  aiComment: string;
+  id?: string; // Add optional ID for routing
+}
 
-const checkIfOpen = (openingHours: OpeningHours): boolean => {
-  const now = new Date();
-  const day = now.getDay();
-  const currentTime = now.getHours() * 60 + now.getMinutes();
-  
-  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const todayHours = openingHours[days[day]];
-  
-  if (!todayHours) return false;
-  
-  const [openHour, openMinute] = todayHours.open.split(':').map(Number);
-  const [closeHour, closeMinute] = todayHours.close.split(':').map(Number);
-  
-  const openTime = openHour * 60 + openMinute;
-  const closeTime = closeHour * 60 + closeMinute;
-  
-  return currentTime >= openTime && currentTime <= closeTime;
-};
+interface FirestoreData {
+  timestamp: any;
+  data: {
+    analysisResults: RestaurantAnalysis[];
+  };
+}
 
-export default function RestaurantList() {
+interface RestaurantListProps {
+  onBack?: () => void;
+}
+
+const RestaurantList = ({ onBack }: RestaurantListProps) => {
+  const [restaurants, setRestaurants] = useState<RestaurantAnalysis[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
-  const buttonScaleAnim = React.useRef(new Animated.Value(1)).current;
-  const [localRestaurants, setLocalRestaurants] = useState<Restaurant[]>(restaurants);
 
   useEffect(() => {
+    // Animation on mount
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 1000,
       useNativeDriver: true,
     }).start();
-  }, []);
-
-  useEffect(() => {
-    const updateRestaurants = () => {
-      const updatedRestaurants = [...restaurants].sort((a, b) => {
-        const aIsOpen = checkIfOpen(a.openingHours);
-        const bIsOpen = checkIfOpen(b.openingHours);
-        if (aIsOpen === bIsOpen) return 0;
-        return aIsOpen ? -1 : 1;
-      });
-      setLocalRestaurants(updatedRestaurants);
+    
+    const fetchRestaurantsFromFirestore = async () => {
+      try {
+        setLoading(true);
+        // Get the latest analysis from Firestore
+        const latestDocRef = doc(db, "restaurant-analysis", "latest");
+        const latestDocSnap = await getDoc(latestDocRef);
+        
+        if (latestDocSnap.exists()) {
+          const data = latestDocSnap.data() as FirestoreData;
+          // Add IDs to each restaurant for navigation
+          const restaurantsWithIds = data.data.analysisResults.map((restaurant, index) => ({
+            ...restaurant,
+            id: `restaurant-${index}`
+          }));
+          setRestaurants(restaurantsWithIds);
+        } else {
+          // If no data, set empty array
+          setRestaurants([]);
+        }
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching restaurants:", err);
+        setError("Nie udało się pobrać danych restauracji.");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    updateRestaurants();
-    const interval = setInterval(updateRestaurants, 60000); // Update every minute
-
-    return () => clearInterval(interval);
+    fetchRestaurantsFromFirestore();
   }, []);
 
+  // Handle restaurant item press
   const handleRestaurantPress = (id: string) => {
     Animated.sequence([
       Animated.timing(scaleAnim, {
@@ -73,333 +89,291 @@ export default function RestaurantList() {
     });
   };
 
-  const handleBackPress = () => {
-    Animated.sequence([
-      Animated.timing(buttonScaleAnim, {
-        toValue: 0.8,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(buttonScaleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      // Animacja wyjścia
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 0.95,
-          duration: 200,
-          useNativeDriver: true,
-        })
-      ]).start(() => {
-        router.replace('/');
-      });
-    });
-  };
+  // Sort restaurants by compareFun in descending order (highest value first)
+  const sortedRestaurants = [...restaurants].sort((a, b) => 
+    b.compareFun - a.compareFun
+  );
 
-  const renderRestaurantItem = ({ item }: { item: Restaurant }) => {
-    const isOpen = checkIfOpen(item.openingHours);
-    const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const todayHours = item.openingHours[days[new Date().getDay()]];
-    
-    return (
-      <Animated.View
-        style={[
-          styles.cardContainer,
-          {
-            opacity: fadeAnim,
-            transform: [
-              {
-                translateY: fadeAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [50, 0],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <Pressable 
-          style={({ pressed }) => [
-            styles.restaurantCard,
-            pressed && styles.cardPressed,
-            !isOpen && styles.closedRestaurantCard,
-          ]}
-          onPress={() => handleRestaurantPress(item.id)}
-          android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
-        >
-          <View style={styles.cardContent}>
-            <View style={styles.restaurantHeader}>
-              <View style={styles.nameContainer}>
-                <Text style={[styles.restaurantName, !isOpen && styles.closedText]}>{item.name}</Text>
-                <View style={styles.cuisineTag}>
-                  <Text style={[styles.cuisineText, !isOpen && styles.closedText]}>{item.cuisine}</Text>
-                </View>
-              </View>
-              <View style={styles.upperRightContainer}>
-                <View style={styles.ratingContainer}>
-                  {[...Array(5)].map((_, index) => (
-                    <MaterialIcons
-                      key={index}
-                      name={index < item.rating ? 'star' : 'star-border'}
-                      size={16}
-                      color={!isOpen ? '#999' : '#FFD700'}
-                    />
-                  ))}
-                </View>
-                <View style={styles.priceContainer}>
-                  <Text style={[styles.priceText, !isOpen && styles.closedText]}>
-                    {item.priceRange === 'budget' ? '€' : item.priceRange === 'moderate' ? '€€' : '€€€'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-            
-            <Text style={[styles.restaurantDescription, !isOpen && styles.closedText]} numberOfLines={2}>
-              {item.description}
-            </Text>
-            
-            <View style={styles.bottomContainer}>
-              <View style={styles.leftInfoContainer}>
-                <View style={styles.infoContainer}>
-                  <MaterialIcons name="location-on" size={16} color={!isOpen ? '#999' : '#666'} />
-                  <Text style={[styles.infoText, !isOpen && styles.closedText]}>{item.address}</Text>
-                </View>
-              </View>
-              <View style={styles.rightInfoContainer}>
-                {todayHours && (
-                  <View style={styles.hoursContainer}>
-                    <MaterialIcons 
-                      name="access-time" 
-                      size={14} 
-                      color={!isOpen ? '#999' : '#666'} 
-                    />
-                    <Text style={[styles.hoursText, !isOpen && styles.closedText]}>
-                      {todayHours.open} - {todayHours.close}
-                    </Text>
-                  </View>
-                )}
-                <View style={styles.statusContainer}>
-                  <MaterialIcons 
-                    name={isOpen ? 'check-circle' : 'cancel'} 
-                    size={16} 
-                    color={isOpen ? '#4CAF50' : '#F44336'} 
-                  />
-                  <Text style={[styles.infoText, { color: isOpen ? '#4CAF50' : '#F44336' }]}>
-                    {isOpen ? 'Open' : 'Closed'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        </Pressable>
-      </Animated.View>
-    );
+  // Add function to handle analysis
+  const handleAnalyze = async () => {
+    try {
+      setAnalyzing(true);
+      await analyzeRestaurants();
+      // Refetch data after analysis
+      const latestDocRef = doc(db, "restaurant-analysis", "latest");
+      const latestDocSnap = await getDoc(latestDocRef);
+      
+      if (latestDocSnap.exists()) {
+        const data = latestDocSnap.data() as FirestoreData;
+        // Add IDs to each restaurant for navigation
+        const restaurantsWithIds = data.data.analysisResults.map((restaurant, index) => ({
+          ...restaurant,
+          id: `restaurant-${index}`
+        }));
+        setRestaurants(restaurantsWithIds);
+      }
+      setError(null);
+    } catch (err) {
+      console.error("Error analyzing restaurants:", err);
+      setError("Nie udało się przeprowadzić analizy restauracji.");
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Animated.View 
-        style={[
-          styles.background,
-          {
-            opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }]
-          }
-        ]}
-      >
-        <View style={styles.headerContainer}>
-          <Animated.View
-            style={{
-              transform: [{ scale: buttonScaleAnim }]
-            }}
-          >
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={handleBackPress}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="arrow-back" size={24} color="#fff" />
-            </TouchableOpacity>
-          </Animated.View>
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.title}>Best Restaurants</Text>
-            <Text style={styles.subtitle}>Discover exceptional flavors</Text>
-          </View>
+      <View style={styles.header}>
+        {onBack && (
+          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+            <Text style={styles.backButtonText}>← Powrót</Text>
+          </TouchableOpacity>
+        )}
+        <Text style={styles.headerTitle}>Ranking Restauracji wg. Boolk</Text>
+      </View>
+
+      <View style={styles.actionBar}>
+        <TouchableOpacity 
+          style={styles.analyzeButton}
+          onPress={handleAnalyze}
+          disabled={analyzing}
+        >
+          <Text style={styles.analyzeButtonText}>
+            {analyzing ? 'Analizowanie...' : 'Odśwież Analizę'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {loading || analyzing ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2ecc71" />
+          <Text style={styles.loadingText}>
+            {analyzing ? 'Analizowanie restauracji...' : 'Wczytywanie restauracji...'}
+          </Text>
         </View>
-        <FlatList
-          data={localRestaurants}
-          renderItem={renderRestaurantItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-        />
-      </Animated.View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : (
+        <ScrollView style={styles.scrollView}>
+          {sortedRestaurants.length > 0 ? (
+            sortedRestaurants.map((restaurant, index) => (
+              <Animated.View 
+                key={index}
+                style={[
+                  styles.restaurantCardContainer,
+                  {
+                    opacity: fadeAnim,
+                    transform: [
+                      {
+                        translateY: fadeAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [50, 0],
+                        }),
+                      },
+                    ],
+                  }
+                ]}
+              >
+                <Pressable 
+                  style={({ pressed }) => [
+                    styles.restaurantCard,
+                    pressed && styles.cardPressed,
+                  ]}
+                  onPress={() => handleRestaurantPress(restaurant.id || 'default')}
+                  android_ripple={{ color: 'rgba(255, 255, 255, 0.1)' }}
+                >
+                  <View style={styles.rankBadge}>
+                    <Text style={styles.rankText}>{index + 1}</Text>
+                  </View>
+                  <Text style={styles.restaurantName}>{restaurant.restaurantName}</Text>
+                  <View style={styles.scoreContainer}>
+                    <Text style={styles.scoreLabel}>Wskaźnik Boolk:</Text>
+                    <Text style={styles.scoreValue}>{restaurant.compareFun.toFixed(2)}</Text>
+                  </View>
+                  <Text style={styles.aiComment}>{restaurant.aiComment}</Text>
+                  
+                  <View style={styles.detailsContainer}>
+                    <TouchableOpacity 
+                      style={styles.detailsButton}
+                      onPress={() => handleRestaurantPress(restaurant.id || 'default')}
+                    >
+                      <Text style={styles.detailsButtonText}>Zobacz szczegóły</Text>
+                    </TouchableOpacity>
+                  </View>
+                </Pressable>
+              </Animated.View>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>
+                Brak dostępnych restauracji. Spróbuj później lub wróć do strony głównej.
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      )}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#1a1a1a',
   },
-  background: {
-    flex: 1,
-    backgroundColor: 'rgb(46, 204, 113)',
-  },
-  headerContainer: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 60,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    flex: 1,
+    textAlign: 'center',
   },
   backButton: {
     padding: 8,
-    marginRight: 16,
   },
-  headerTextContainer: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'left',
-    marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  subtitle: {
+  backButtonText: {
+    color: '#2ecc71',
     fontSize: 16,
-    color: '#fff',
-    textAlign: 'left',
-    opacity: 0.9,
   },
-  listContainer: {
+  scrollView: {
     padding: 16,
   },
-  cardContainer: {
-    marginBottom: 8,
+  restaurantCardContainer: {
+    marginBottom: 16,
   },
   restaurantCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    position: 'relative',
   },
   cardPressed: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     transform: [{ scale: 0.98 }],
-    opacity: 0.9,
   },
-  cardContent: {
-    padding: 10,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  rankBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#2ecc71',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  restaurantHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-  },
-  nameContainer: {
-    flex: 1,
+  rankText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   restaurantName: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 2,
+    color: '#ffffff',
+    marginBottom: 8,
+    paddingRight: 40,
   },
-  cuisineTag: {
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    alignSelf: 'flex-start',
-  },
-  cuisineText: {
-    fontSize: 12,
-    color: '#666',
-    textTransform: 'capitalize',
-  },
-  upperRightContainer: {
-    alignItems: 'flex-end',
-  },
-  ratingContainer: {
+  scoreContainer: {
     flexDirection: 'row',
-    marginBottom: 4,
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  priceContainer: {
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  priceText: {
+  scoreLabel: {
     fontSize: 14,
-    color: '#333',
-    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginRight: 8,
   },
-  restaurantDescription: {
-    fontSize: 12,
-    color: '#666',
-    lineHeight: 16,
-    marginBottom: 6,
+  scoreValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2ecc71',
   },
-  bottomContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginTop: 2,
+  aiComment: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontStyle: 'italic',
+    marginBottom: 16,
   },
-  leftInfoContainer: {
-    marginTop: 6,
-  },
-  infoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  infoText: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 4,
-  },
-  rightInfoContainer: {
+  detailsContainer: {
+    marginTop: 8,
     alignItems: 'flex-end',
   },
-  statusContainer: {
-    flexDirection: 'row',
+  detailsButton: {
+    backgroundColor: 'rgba(46, 204, 113, 0.2)',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(46, 204, 113, 0.3)',
+  },
+  detailsButtonText: {
+    color: '#2ecc71',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 2,
   },
-  closedRestaurantCard: {
-    opacity: 0.8,
+  loadingText: {
+    marginTop: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
-  closedText: {
-    color: '#999',
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
-  hoursContainer: {
-    flexDirection: 'row',
+  errorText: {
+    color: '#e74c3c',
+    textAlign: 'center',
+  },
+  emptyState: {
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  emptyStateText: {
+    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  actionBar: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  analyzeButton: {
+    backgroundColor: '#2ecc71',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     alignItems: 'center',
   },
-  hoursText: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 4,
+  analyzeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
-}); 
+});
+
+export default RestaurantList; 
