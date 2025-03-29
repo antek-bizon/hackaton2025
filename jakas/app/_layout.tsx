@@ -16,6 +16,12 @@ export default function RootLayout() {
         }}
       />
       <Stack.Screen
+        name="restaurant-list"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="screens/restaurant-details"
         options={{
           title: "Szczegóły Restauracji",
