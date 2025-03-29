@@ -109,6 +109,12 @@ const RestaurantDetails = () => {
     };
   }, [restaurant]);
 
+  const getTodayHours = (openingHours: OpeningHours) => {
+    const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const todayHours = openingHours[days[new Date().getDay()]];
+    return todayHours ? `${todayHours.open} - ${todayHours.close}` : 'Closed';
+  };
+
   if (!restaurant) {
     return (
       <View style={styles.container}>
@@ -253,7 +259,7 @@ const RestaurantDetails = () => {
                 marginLeft: isLargeScreen ? 12 : 8,
               }
             ]}>
-              {isOpen ? 'Open' : 'Closed'}
+              {isOpen ? 'Open' : 'Closed'} • {getTodayHours(restaurant.openingHours)}
             </Text>
           </View>
         </View>

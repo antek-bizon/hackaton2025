@@ -60,6 +60,17 @@ const weekendOnlyHours: OpeningHours = {
   sunday: { open: '11:00', close: '23:00' }
 };
 
+// Godziny dla restauracji otwartej tylko w nocy
+const nightHours: OpeningHours = {
+  monday: { open: '23:00', close: '05:00' },
+  tuesday: { open: '23:00', close: '05:00' },
+  wednesday: { open: '23:00', close: '05:00' },
+  thursday: { open: '23:00', close: '05:00' },
+  friday: { open: '23:00', close: '05:00' },
+  saturday: { open: '23:00', close: '05:00' },
+  sunday: { open: '23:00', close: '05:00' }
+};
+
 export const restaurants: Restaurant[] = [
   {
     id: 'tasty-corner',
@@ -207,7 +218,7 @@ export const restaurants: Restaurant[] = [
     cuisine: 'Italian',
     priceRange: 'budget',
     address: '404 Cedar St, City',
-    openingHours: closedRestaurantHours,
+    openingHours: nightHours,
     imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591',
     reviews: [
       {

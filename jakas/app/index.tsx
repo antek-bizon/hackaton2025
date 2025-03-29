@@ -111,15 +111,22 @@ export default function Home() {
                   <Text style={[styles.cuisineText, !isOpen && styles.closedText]}>{item.cuisine}</Text>
                 </View>
               </View>
-              <View style={styles.ratingContainer}>
-                {[...Array(5)].map((_, index) => (
-                  <MaterialIcons
-                    key={index}
-                    name={index < item.rating ? 'star' : 'star-border'}
-                    size={16}
-                    color={!isOpen ? '#999' : '#FFD700'}
-                  />
-                ))}
+              <View style={styles.upperRightContainer}>
+                <View style={styles.ratingContainer}>
+                  {[...Array(5)].map((_, index) => (
+                    <MaterialIcons
+                      key={index}
+                      name={index < item.rating ? 'star' : 'star-border'}
+                      size={16}
+                      color={!isOpen ? '#999' : '#FFD700'}
+                    />
+                  ))}
+                </View>
+                <View style={styles.priceContainer}>
+                  <Text style={[styles.priceText, !isOpen && styles.closedText]}>
+                    {item.priceRange === 'budget' ? '€' : item.priceRange === 'moderate' ? '€€' : '€€€'}
+                  </Text>
+                </View>
               </View>
             </View>
             
@@ -127,35 +134,37 @@ export default function Home() {
               {item.description}
             </Text>
             
-            <View style={styles.restaurantFooter}>
-              <View style={styles.infoContainer}>
-                <MaterialIcons name="location-on" size={16} color={!isOpen ? '#999' : '#666'} />
-                <Text style={[styles.infoText, !isOpen && styles.closedText]}>{item.address}</Text>
+            <View style={styles.bottomContainer}>
+              <View style={styles.leftInfoContainer}>
+                <View style={styles.infoContainer}>
+                  <MaterialIcons name="location-on" size={16} color={!isOpen ? '#999' : '#666'} />
+                  <Text style={[styles.infoText, !isOpen && styles.closedText]}>{item.address}</Text>
+                </View>
               </View>
-              <View style={styles.infoContainer}>
-                <MaterialIcons 
-                  name={isOpen ? 'check-circle' : 'cancel'} 
-                  size={16} 
-                  color={isOpen ? '#4CAF50' : '#F44336'} 
-                />
-                <Text style={[styles.infoText, { color: isOpen ? '#4CAF50' : '#F44336' }]}>
-                  {isOpen ? 'Otwarte' : 'Zamknięte'}
-                </Text>
+              <View style={styles.rightInfoContainer}>
+                {todayHours && (
+                  <View style={styles.hoursContainer}>
+                    <MaterialIcons 
+                      name="access-time" 
+                      size={14} 
+                      color={!isOpen ? '#999' : '#666'} 
+                    />
+                    <Text style={[styles.hoursText, !isOpen && styles.closedText]}>
+                      {todayHours.open} - {todayHours.close}
+                    </Text>
+                  </View>
+                )}
+                <View style={styles.statusContainer}>
+                  <MaterialIcons 
+                    name={isOpen ? 'check-circle' : 'cancel'} 
+                    size={16} 
+                    color={isOpen ? '#4CAF50' : '#F44336'} 
+                  />
+                  <Text style={[styles.infoText, { color: isOpen ? '#4CAF50' : '#F44336' }]}>
+                    {isOpen ? 'Open' : 'Closed'}
+                  </Text>
+                </View>
               </View>
-            </View>
-            
-            {todayHours && (
-              <View style={styles.hoursContainer}>
-                <Text style={[styles.hoursText, !isOpen && styles.closedText]}>
-                  {todayHours.open} - {todayHours.close}
-                </Text>
-              </View>
-            )}
-            
-            <View style={styles.priceContainer}>
-              <Text style={[styles.priceText, !isOpen && styles.closedText]}>
-                {item.priceRange === 'budget' ? '€' : item.priceRange === 'moderate' ? '€€' : '€€€'}
-              </Text>
             </View>
           </View>
         </Pressable>
@@ -214,7 +223,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   cardContainer: {
-    marginBottom: 16,
+    marginBottom: 8,
   },
   restaurantCard: {
     borderRadius: 16,
@@ -233,7 +242,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   cardGradient: {
-    padding: 16,
+    padding: 10,
     borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
@@ -241,22 +250,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   nameContainer: {
     flex: 1,
   },
   restaurantName: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   cuisineTag: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
     alignSelf: 'flex-start',
   },
   cuisineText: {
@@ -264,21 +273,38 @@ const styles = StyleSheet.create({
     color: '#666',
     textTransform: 'capitalize',
   },
+  upperRightContainer: {
+    alignItems: 'flex-end',
+  },
   ratingContainer: {
     flexDirection: 'row',
-    marginLeft: 8,
-    marginRight: 40,
+    marginBottom: 4,
+  },
+  priceContainer: {
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  priceText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
   },
   restaurantDescription: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
-    lineHeight: 20,
-    marginBottom: 12,
+    lineHeight: 16,
+    marginBottom: 6,
   },
-  restaurantFooter: {
+  bottomContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginTop: 2,
+  },
+  leftInfoContainer: {
+    marginTop: 6,
   },
   infoContainer: {
     flexDirection: 'row',
@@ -289,20 +315,13 @@ const styles = StyleSheet.create({
     color: '#666',
     marginLeft: 4,
   },
-  priceContainer: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    zIndex: 10,
+  rightInfoContainer: {
+    alignItems: 'flex-end',
   },
-  priceText: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '600',
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
   },
   closedRestaurantCard: {
     opacity: 0.8,
@@ -311,11 +330,12 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   hoursContainer: {
-    marginTop: 8,
-    marginBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   hoursText: {
     fontSize: 12,
     color: '#666',
+    marginLeft: 4,
   },
 });
