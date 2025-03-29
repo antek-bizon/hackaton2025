@@ -1160,7 +1160,7 @@ export default function MainScreen() {
             >
               <Text style={styles.introText}>
                 Najlepszy sposób by zaspokoić głód{"\n"}
-                dzięki rewolucyjnemu Boolk Meter
+                dzięki rewolucyjnemu Boolk Meter™
               </Text>
             </Animated.View>
 
@@ -1209,10 +1209,10 @@ export default function MainScreen() {
               </View>
 
               <View style={styles.featureCard}>
-                <IconClock />
+            
                 <Text style={styles.featureTitle}>Co to Boolk Meter</Text>
                 <Text style={styles.featureDescription}>
-                  Boolk to zaawansowany system, który na podstawie opinii użytkowników pomaga wybrać restaurację, gdzie zjesz NAJWIĘCEJ za rozsądną cenę. Nasz algorytm sztucznej inteligencji analizuje dane i wybiera najlepszą opcję!
+                  Boolk używa gemini API do analizy opinii klientów by wydobyć najważniejsze informacje: Jak duże są porcje jedzenia.
                 </Text>
               </View>
 
