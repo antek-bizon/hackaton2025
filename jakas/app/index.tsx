@@ -1,12 +1,34 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Animated, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Link, router } from 'expo-router';
-import { restaurants, Restaurant } from './data/restaurants';
+import { restaurants, Restaurant, OpeningHours } from './data/restaurants';
+
+type DayOfWeek = keyof OpeningHours;
+
+const checkIfOpen = (openingHours: OpeningHours): boolean => {
+  const now = new Date();
+  const day = now.getDay();
+  const currentTime = now.getHours() * 60 + now.getMinutes();
+  
+  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const todayHours = openingHours[days[day]];
+  
+  if (!todayHours) return false;
+  
+  const [openHour, openMinute] = todayHours.open.split(':').map(Number);
+  const [closeHour, closeMinute] = todayHours.close.split(':').map(Number);
+  
+  const openTime = openHour * 60 + openMinute;
+  const closeTime = closeHour * 60 + closeMinute;
+  
+  return currentTime >= openTime && currentTime <= closeTime;
+};
 
 export default function Home() {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
+  const [localRestaurants, setLocalRestaurants] = useState<Restaurant[]>(restaurants);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -14,6 +36,23 @@ export default function Home() {
       duration: 1000,
       useNativeDriver: true,
     }).start();
+  }, []);
+
+  useEffect(() => {
+    const updateRestaurants = () => {
+      const updatedRestaurants = [...restaurants].sort((a, b) => {
+        const aIsOpen = checkIfOpen(a.openingHours);
+        const bIsOpen = checkIfOpen(b.openingHours);
+        if (aIsOpen === bIsOpen) return 0;
+        return aIsOpen ? -1 : 1;
+      });
+      setLocalRestaurants(updatedRestaurants);
+    };
+
+    updateRestaurants();
+    const interval = setInterval(updateRestaurants, 60000); // Aktualizuj co minutę
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleRestaurantPress = (id: string) => {
@@ -33,81 +72,96 @@ export default function Home() {
     });
   };
 
-  const renderRestaurantItem = ({ item }: { item: Restaurant }) => (
-    <Animated.View
-      style={[
-        styles.cardContainer,
-        {
-          opacity: fadeAnim,
-          transform: [
-            {
-              translateY: fadeAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [50, 0],
-              }),
-            },
-          ],
-        },
-      ]}
-    >
-      <Pressable 
-        style={({ pressed }) => [
-          styles.restaurantCard,
-          pressed && styles.cardPressed,
+  const renderRestaurantItem = ({ item }: { item: Restaurant }) => {
+    const isOpen = checkIfOpen(item.openingHours);
+    const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const todayHours = item.openingHours[days[new Date().getDay()]];
+    
+    return (
+      <Animated.View
+        style={[
+          styles.cardContainer,
+          {
+            opacity: fadeAnim,
+            transform: [
+              {
+                translateY: fadeAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [50, 0],
+                }),
+              },
+            ],
+          },
         ]}
-        onPress={() => handleRestaurantPress(item.id)}
-        android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
       >
-        <View style={styles.cardGradient}>
-          <View style={styles.restaurantHeader}>
-            <View style={styles.nameContainer}>
-              <Text style={styles.restaurantName}>{item.name}</Text>
-              <View style={styles.cuisineTag}>
-                <Text style={styles.cuisineText}>{item.cuisine}</Text>
+        <Pressable 
+          style={({ pressed }) => [
+            styles.restaurantCard,
+            pressed && styles.cardPressed,
+            !isOpen && styles.closedRestaurantCard,
+          ]}
+          onPress={() => handleRestaurantPress(item.id)}
+          android_ripple={{ color: 'rgba(0,0,0,0.1)' }}
+        >
+          <View style={styles.cardGradient}>
+            <View style={styles.restaurantHeader}>
+              <View style={styles.nameContainer}>
+                <Text style={[styles.restaurantName, !isOpen && styles.closedText]}>{item.name}</Text>
+                <View style={styles.cuisineTag}>
+                  <Text style={[styles.cuisineText, !isOpen && styles.closedText]}>{item.cuisine}</Text>
+                </View>
+              </View>
+              <View style={styles.ratingContainer}>
+                {[...Array(5)].map((_, index) => (
+                  <MaterialIcons
+                    key={index}
+                    name={index < item.rating ? 'star' : 'star-border'}
+                    size={16}
+                    color={!isOpen ? '#999' : '#FFD700'}
+                  />
+                ))}
               </View>
             </View>
-            <View style={styles.ratingContainer}>
-              {[...Array(5)].map((_, index) => (
-                <MaterialIcons
-                  key={index}
-                  name={index < item.rating ? 'star' : 'star-border'}
-                  size={16}
-                  color="#FFD700"
+            
+            <Text style={[styles.restaurantDescription, !isOpen && styles.closedText]} numberOfLines={2}>
+              {item.description}
+            </Text>
+            
+            <View style={styles.restaurantFooter}>
+              <View style={styles.infoContainer}>
+                <MaterialIcons name="location-on" size={16} color={!isOpen ? '#999' : '#666'} />
+                <Text style={[styles.infoText, !isOpen && styles.closedText]}>{item.address}</Text>
+              </View>
+              <View style={styles.infoContainer}>
+                <MaterialIcons 
+                  name={isOpen ? 'check-circle' : 'cancel'} 
+                  size={16} 
+                  color={isOpen ? '#4CAF50' : '#F44336'} 
                 />
-              ))}
+                <Text style={[styles.infoText, { color: isOpen ? '#4CAF50' : '#F44336' }]}>
+                  {isOpen ? 'Otwarte' : 'Zamknięte'}
+                </Text>
+              </View>
             </View>
-          </View>
-          
-          <Text style={styles.restaurantDescription} numberOfLines={2}>
-            {item.description}
-          </Text>
-          
-          <View style={styles.restaurantFooter}>
-            <View style={styles.infoContainer}>
-              <MaterialIcons name="location-on" size={16} color="#666" />
-              <Text style={styles.infoText}>{item.address}</Text>
-            </View>
-            <View style={styles.infoContainer}>
-              <MaterialIcons 
-                name={item.isOpen ? 'check-circle' : 'cancel'} 
-                size={16} 
-                color={item.isOpen ? '#4CAF50' : '#F44336'} 
-              />
-              <Text style={[styles.infoText, { color: item.isOpen ? '#4CAF50' : '#F44336' }]}>
-                {item.isOpen ? 'Otwarte' : 'Zamknięte'}
+            
+            {todayHours && (
+              <View style={styles.hoursContainer}>
+                <Text style={[styles.hoursText, !isOpen && styles.closedText]}>
+                  {todayHours.open} - {todayHours.close}
+                </Text>
+              </View>
+            )}
+            
+            <View style={styles.priceContainer}>
+              <Text style={[styles.priceText, !isOpen && styles.closedText]}>
+                {item.priceRange === 'budget' ? '€' : item.priceRange === 'moderate' ? '€€' : '€€€'}
               </Text>
             </View>
           </View>
-          
-          <View style={styles.priceContainer}>
-            <Text style={styles.priceText}>
-              {item.priceRange === 'budget' ? '€' : item.priceRange === 'moderate' ? '€€' : '€€€'}
-            </Text>
-          </View>
-        </View>
-      </Pressable>
-    </Animated.View>
-  );
+        </Pressable>
+      </Animated.View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -117,7 +171,7 @@ export default function Home() {
           <Text style={styles.subtitle}>Odkryj wyjątkowe smaki</Text>
         </View>
         <FlatList
-          data={restaurants}
+          data={localRestaurants}
           renderItem={renderRestaurantItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
@@ -249,5 +303,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     fontWeight: '600',
+  },
+  closedRestaurantCard: {
+    opacity: 0.8,
+  },
+  closedText: {
+    color: '#999',
+  },
+  hoursContainer: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  hoursText: {
+    fontSize: 12,
+    color: '#666',
   },
 });

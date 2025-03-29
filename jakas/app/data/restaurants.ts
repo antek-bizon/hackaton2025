@@ -1,5 +1,15 @@
 export type Rating = 1 | 2 | 3 | 4 | 5;
 
+export interface OpeningHours {
+  monday: { open: string; close: string } | null;
+  tuesday: { open: string; close: string } | null;
+  wednesday: { open: string; close: string } | null;
+  thursday: { open: string; close: string } | null;
+  friday: { open: string; close: string } | null;
+  saturday: { open: string; close: string } | null;
+  sunday: { open: string; close: string } | null;
+}
+
 export interface Restaurant {
   id: string;
   name: string;
@@ -8,7 +18,7 @@ export interface Restaurant {
   cuisine: string;
   priceRange: 'budget' | 'moderate' | 'luxury';
   address: string;
-  isOpen: boolean;
+  openingHours: OpeningHours;
   imageUrl: string;
   reviews: {
     rating: Rating;
@@ -16,6 +26,39 @@ export interface Restaurant {
     date: string;
   }[];
 }
+
+// Domyślne godziny otwarcia
+const defaultOpeningHours: OpeningHours = {
+  monday: { open: '10:00', close: '22:00' },
+  tuesday: { open: '10:00', close: '22:00' },
+  wednesday: { open: '10:00', close: '22:00' },
+  thursday: { open: '10:00', close: '22:00' },
+  friday: { open: '10:00', close: '22:00' },
+  saturday: { open: '11:00', close: '23:00' },
+  sunday: { open: '11:00', close: '23:00' }
+};
+
+// Godziny dla zamkniętej restauracji
+const closedRestaurantHours: OpeningHours = {
+  monday: null,
+  tuesday: null,
+  wednesday: null,
+  thursday: null,
+  friday: null,
+  saturday: null,
+  sunday: null
+};
+
+// Godziny dla restauracji otwartej tylko w weekendy
+const weekendOnlyHours: OpeningHours = {
+  monday: null,
+  tuesday: null,
+  wednesday: null,
+  thursday: null,
+  friday: { open: '11:00', close: '23:00' },
+  saturday: { open: '11:00', close: '23:00' },
+  sunday: { open: '11:00', close: '23:00' }
+};
 
 export const restaurants: Restaurant[] = [
   {
@@ -26,7 +69,7 @@ export const restaurants: Restaurant[] = [
     cuisine: 'French',
     priceRange: 'moderate',
     address: '123 Main St, City',
-    isOpen: true,
+    openingHours: defaultOpeningHours,
     imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836',
     reviews: [
       {
@@ -49,7 +92,7 @@ export const restaurants: Restaurant[] = [
     cuisine: 'French',
     priceRange: 'luxury',
     address: '456 Elm St, City',
-    isOpen: true,
+    openingHours: defaultOpeningHours,
     imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999',
     reviews: [
       {
@@ -72,7 +115,7 @@ export const restaurants: Restaurant[] = [
     cuisine: 'Indian',
     priceRange: 'moderate',
     address: '789 Oak St, City',
-    isOpen: true,
+    openingHours: defaultOpeningHours,
     imageUrl: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe',
     reviews: [
       {
@@ -95,7 +138,7 @@ export const restaurants: Restaurant[] = [
     cuisine: 'Mediterranean',
     priceRange: 'luxury',
     address: '101 Pine St, City',
-    isOpen: true,
+    openingHours: defaultOpeningHours,
     imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b',
     reviews: [
       {
@@ -118,7 +161,7 @@ export const restaurants: Restaurant[] = [
     cuisine: 'American',
     priceRange: 'moderate',
     address: '202 Maple St, City',
-    isOpen: true,
+    openingHours: defaultOpeningHours,
     imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947',
     reviews: [
       {
@@ -141,7 +184,7 @@ export const restaurants: Restaurant[] = [
     cuisine: 'Japanese',
     priceRange: 'luxury',
     address: '303 Birch St, City',
-    isOpen: true,
+    openingHours: defaultOpeningHours,
     imageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c',
     reviews: [
       {
@@ -164,7 +207,7 @@ export const restaurants: Restaurant[] = [
     cuisine: 'Italian',
     priceRange: 'budget',
     address: '404 Cedar St, City',
-    isOpen: true,
+    openingHours: closedRestaurantHours,
     imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591',
     reviews: [
       {
@@ -187,7 +230,7 @@ export const restaurants: Restaurant[] = [
     cuisine: 'Thai',
     priceRange: 'moderate',
     address: '505 Elm St, City',
-    isOpen: true,
+    openingHours: weekendOnlyHours,
     imageUrl: 'https://images.unsplash.com/photo-1559314809-0d155014e29e',
     reviews: [
       {
@@ -210,7 +253,7 @@ export const restaurants: Restaurant[] = [
     cuisine: 'Vegetarian',
     priceRange: 'budget',
     address: '606 Maple St, City',
-    isOpen: true,
+    openingHours: defaultOpeningHours,
     imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd',
     reviews: [
       {
@@ -233,7 +276,7 @@ export const restaurants: Restaurant[] = [
     cuisine: 'Mexican',
     priceRange: 'budget',
     address: '707 Elm St, City',
-    isOpen: true,
+    openingHours: defaultOpeningHours,
     imageUrl: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47',
     reviews: [
       {
