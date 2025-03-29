@@ -1,0 +1,5 @@
+### Get all restaurants
+GET http://localhost:3000/api/restaurants
+
+### Get info for a restaurant
+GET http://localhost:3000/api/restaurants/1
