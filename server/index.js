@@ -15,20 +15,26 @@ async function createDatabase() {
   await db.run(`CREATE TABLE IF NOT EXISTS restaurants (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    location TEXT NOT NULL,
-    geo TEXT NOT NULL
+    description TEXT,
+    cuisine TEXT,
+    price_range TEXT,
+    address TEXT,
+    openingHours TEXT,
+    image_url: TEXT,
   )`)
   await Promise.all([
     db.run(`CREATE TABLE IF NOT EXISTS reviews (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       restaurant_id INTEGER NOT NULL,
       review TEXT NOT NULL,
-      rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+      rating INTEGER CHECK(rating >= 1 AND rating <= 10),
+      data TEXT,
       FOREIGN KEY (restaurant_id) REFERENCES restaurants (id)
     )`),
     db.run(`CREATE TABLE IF NOT EXISTS cache (
       restaurant_id INTEGER NOT NULL,
       result TEXT NOT NULL,
+      creation_date INTEGER NOT NULL,
       FOREIGN KEY (restaurant_id) REFERENCES restaurants (id)
       )`),
     db.run(`CREATE TABLE IF NOT EXISTS queue (
@@ -61,7 +67,7 @@ async function getRestaurantScore(id) {
     const result = Promise.all([
       db.run('INSERT INTO queue VALUES (?)', [id]),
       makeAIRequest(reviews)]).then((results) => {
-        db.run('INSERT INTO cache VALUES (?, ?)'[id, results[1]])
+        db.run('INSERT INTO cache VALUES (?, ?, ?)'[id, results[1], Date.now()])
       })
   }
 
